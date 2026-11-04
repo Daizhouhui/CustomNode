@@ -57,6 +57,7 @@ function githubFileUrl(fileName, env) {
 function githubHeaders(env, accept) {
     return {
         Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+        "User-Agent": "CustomNode-Worker",
         Accept: accept,
         "X-GitHub-Api-Version": "2022-11-28",
     };
@@ -109,7 +110,29 @@ async function fetchRepositoryFile(fileName, env) {
             return jsonResponse({ error: "GitHub rejected GITHUB_TOKEN (401). Check that the Worker Secret contains a valid token." }, 502);
         }
         if (response.status === 403) {
-            return jsonResponse({ error: "GitHub denied repository access (403). Check the token's repository selection, Contents read permission, and organization SSO authorization." }, 502);
+            let githubMessage = "";
+            try {
+                const body = await response.json();
+                if (typeof body.message === "string") {
+                    githubMessage = body.message.toLowerCase();
+                }
+            } catch {
+                // Use response headers when GitHub does not return JSON.
+            }
+            if (response.headers.get("X-GitHub-SSO")) {
+                return jsonResponse({ error: "GitHub requires organization SSO authorization for this token (403)." }, 502);
+            }
+            if (
+                response.headers.get("X-RateLimit-Remaining") === "0" ||
+                githubMessage.includes("rate limit") ||
+                githubMessage.includes("secondary rate")
+            ) {
+                return jsonResponse({ error: "GitHub API rate limit reached (403). Wait and retry." }, 502);
+            }
+            if (githubMessage.includes("resource not accessible by personal access token")) {
+                return jsonResponse({ error: "GitHub says this token cannot access the requested resource (403). Check its repository and Contents read permission." }, 502);
+            }
+            return jsonResponse({ error: "GitHub denied repository access (403). Check the token's repository selection, Contents read permission, organization SSO authorization, and API rate limit." }, 502);
         }
         if (response.status === 404) {
             return jsonResponse({ error: "GitHub could not find this file or the token cannot access the private repository (404)." }, 404);

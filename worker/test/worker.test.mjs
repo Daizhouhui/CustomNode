@@ -85,6 +85,7 @@ test("login page is public while manager assets are protected", async () => {
     await withMockGitHub(async (input, options) => {
         const githubRequest = new URL(input);
         assert.match(githubRequest.pathname, /\/repos\/example\/nodes\/contents\/index\.html/);
+        assert.equal(new Headers(options.headers).get("User-Agent"), "CustomNode-Worker");
         assert.equal(new Headers(options.headers).get("Authorization"), `Bearer ${env.GITHUB_TOKEN}`);
         return new Response("<html>latest index</html>");
     }, async () => {
@@ -189,12 +190,26 @@ test("does not issue signed links for files absent from the current repository i
 
 test("reports safe GitHub authorization diagnostics without exposing response bodies", async () => {
     const cookie = await login();
-    for (const [status, message] of [
-        [401, /GITHUB_TOKEN.*401/],
-        [403, /repository access.*403.*Contents read permission/],
+    for (const [upstreamResponse, message] of [
+        [new Response(JSON.stringify({ message: "Bad credentials" }), { status: 401 }), /GITHUB_TOKEN.*401/],
+        [
+            new Response(JSON.stringify({ message: "Resource not accessible by personal access token" }), { status: 403 }),
+            /cannot access the requested resource/,
+        ],
+        [
+            new Response(JSON.stringify({ message: "API rate limit exceeded" }), { status: 403 }),
+            /rate limit reached/,
+        ],
+        [
+            new Response(JSON.stringify({ message: "Resource denied" }), {
+                status: 403,
+                headers: { "X-GitHub-SSO": "required; url=https://github.com/orgs/example/sso" },
+            }),
+            /requires organization SSO authorization/,
+        ],
     ]) {
         const response = await withMockGitHub(async () =>
-            new Response("sensitive upstream response", { status }),
+            upstreamResponse,
         () =>
             worker.fetch(
                 request("/", { headers: { Cookie: cookie } }),
@@ -207,7 +222,7 @@ test("reports safe GitHub authorization diagnostics without exposing response bo
         assert.equal(response.status, 502);
         const body = await response.json();
         assert.match(body.error, message);
-        assert.equal(JSON.stringify(body).includes("sensitive upstream response"), false);
+        assert.equal(JSON.stringify(body).includes("Bad credentials"), false);
     }
 });
 
@@ -226,6 +241,7 @@ test("returns the current GitHub file content only for a valid signed URL", asyn
         const githubRequest = new URL(input);
         assert.match(githubRequest.pathname, /contents\/test-node$/);
         assert.equal(githubRequest.searchParams.get("ref"), "main");
+        assert.equal(new Headers(options.headers).get("User-Agent"), "CustomNode-Worker");
         assert.equal(new Headers(options.headers).get("Authorization"), `Bearer ${env.GITHUB_TOKEN}`);
         return new Response("current repository node content");
     }, async () => {
