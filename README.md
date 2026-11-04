@@ -57,6 +57,29 @@
 
 管理页删除节点文件会直接提交到 GitHub `main`。现有索引生成 GitHub Actions 完成后，重新打开管理页即可看到变化；订阅文件删除后，已有签名订阅链接也会因 GitHub 返回文件不存在而失效。
 
+### 上传后立即获取订阅链接
+
+其他静态上传页面可以在文件上传成功后，直接请求 Worker 的 `POST /api/subscription-link`。此接口不依赖 `index.html` 索引或 GitHub Actions：Worker 用请求中提供的 GitHub Token 检查文件是否已经存在于配置的仓库和分支，然后返回签名订阅链接。Token 只用于当前请求，不会保存到 Worker；不要将 Token 写入 HTML、JavaScript 源码、URL 或日志。
+
+```javascript
+const response = await fetch("https://manager.knny.dpdns.org/api/subscription-link", {
+    method: "POST",
+    headers: {
+        "Authorization": `Bearer ${githubToken}`,
+        "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ file: uploadedFileName }),
+});
+
+const result = await response.json();
+if (!response.ok) {
+    throw new Error(result.error || `获取订阅链接失败（HTTP ${response.status}）`);
+}
+console.log(result.url);
+```
+
+`githubToken` 应是用户在上传页面本次输入的令牌；建议使用仅授权此仓库且具有 `Contents: Read` 权限的 Fine-grained PAT。该接口接受跨域请求以支持静态页面；它不使用 Cookie，调用者必须自行提供有效 GitHub Token。签名链接是持有者可访问对应单个文件的凭据，应妥善处理和分享。
+
 Cloudflare Free 有请求和 CPU 配额，具体限制以账号当前方案为准；这适合轻量个人使用，不是无限量或抗滥用的商业托管。
 
 ---

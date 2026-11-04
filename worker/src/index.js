@@ -16,6 +16,19 @@ function jsonResponse(body, status = 200, headers = {}) {
     });
 }
 
+function subscriptionApiResponse(response) {
+    const headers = new Headers(response.headers);
+    headers.set("Access-Control-Allow-Origin", "*");
+    headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+    headers.set("Access-Control-Allow-Headers", "Authorization, Content-Type");
+    headers.set("Access-Control-Max-Age", "600");
+    return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers,
+    });
+}
+
 function validFileName(fileName) {
     const hasYamlExtension = typeof fileName === "string" && fileName.toLowerCase().endsWith(".yaml");
     return (
@@ -54,9 +67,9 @@ function githubFileUrl(fileName, env) {
     return `https://api.github.com/repos/${owner}/${repository}/contents/${path}?ref=${ref}`;
 }
 
-function githubHeaders(env, accept) {
+function githubHeaders(env, accept, token = env.GITHUB_TOKEN) {
     return {
-        Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+        Authorization: `Bearer ${token}`,
         "User-Agent": "CustomNode-Worker",
         Accept: accept,
         "Cache-Control": "no-cache",
@@ -418,6 +431,81 @@ async function createSubscriptionLink(url, env) {
     return jsonResponse({ url: subscriptionUrl.toString() });
 }
 
+async function createUploadedFileSubscriptionLink(request, url, env) {
+    if (request.method === "OPTIONS") {
+        return subscriptionApiResponse(new Response(null, { status: 204 }));
+    }
+    if (request.method !== "POST") {
+        return subscriptionApiResponse(
+            jsonResponse({ error: "Method not allowed" }, 405, { Allow: "POST, OPTIONS" }),
+        );
+    }
+    if (!request.headers.get("Content-Type")?.toLowerCase().startsWith("application/json")) {
+        return subscriptionApiResponse(jsonResponse({ error: "Expected JSON request" }, 415));
+    }
+
+    const authorization = request.headers.get("Authorization") || "";
+    const tokenMatch = authorization.match(/^Bearer\s+([^\s]{1,512})$/i);
+    if (!tokenMatch) {
+        return subscriptionApiResponse(jsonResponse({ error: "GitHub token is required in the Authorization header" }, 401));
+    }
+
+    let body;
+    try {
+        body = await request.json();
+    } catch {
+        return subscriptionApiResponse(jsonResponse({ error: "Invalid request" }, 400));
+    }
+    const fileName = body?.file;
+    if (!validFileName(fileName)) {
+        return subscriptionApiResponse(jsonResponse({ error: "Invalid file name" }, 400));
+    }
+    if (!signingKeyIsConfigured(env)) {
+        console.error("Subscription signing key is missing or shorter than 32 bytes");
+        return subscriptionApiResponse(jsonResponse({ error: "Service is not configured" }, 503));
+    }
+
+    let githubResponse;
+    try {
+        githubResponse = await fetch(githubFileUrl(fileName, env), {
+            headers: githubHeaders(env, "application/vnd.github+json", tokenMatch[1]),
+        });
+    } catch (error) {
+        console.error("GitHub file verification failed", error);
+        return subscriptionApiResponse(jsonResponse({ error: "Unable to reach GitHub" }, 502));
+    }
+    if (githubResponse.status === 401) {
+        return subscriptionApiResponse(jsonResponse({ error: "GitHub rejected the supplied token" }, 401));
+    }
+    if (githubResponse.status === 403) {
+        return subscriptionApiResponse(jsonResponse({ error: "GitHub denied access; verify the token can read this repository" }, 403));
+    }
+    if (githubResponse.status === 404) {
+        return subscriptionApiResponse(jsonResponse({ error: "File not found in the configured repository branch" }, 404));
+    }
+    if (!githubResponse.ok) {
+        console.error("GitHub file verification failed", githubResponse.status);
+        return subscriptionApiResponse(
+            jsonResponse({ error: `GitHub repository request failed (HTTP ${githubResponse.status})` }, 502),
+        );
+    }
+
+    let repositoryFile;
+    try {
+        repositoryFile = await githubResponse.json();
+    } catch {
+        return subscriptionApiResponse(jsonResponse({ error: "GitHub returned an invalid file response" }, 502));
+    }
+    if (repositoryFile.path !== fileName || repositoryFile.type !== "file") {
+        return subscriptionApiResponse(jsonResponse({ error: "Requested path is not a repository file" }, 404));
+    }
+
+    const signature = await signatureFor(fileName, env);
+    const subscriptionUrl = new URL(`/sub/${encodeURIComponent(fileName)}`, url.origin);
+    subscriptionUrl.searchParams.set("sig", signature);
+    return subscriptionApiResponse(jsonResponse({ url: subscriptionUrl.toString() }));
+}
+
 async function serveSubscription(url, env) {
     if (!signingKeyIsConfigured(env)) {
         console.error("Subscription signing key is not configured");
@@ -482,6 +570,9 @@ async function handleRequest(request, env) {
     }
 
     if (url.pathname === "/api/subscription-link") {
+        if (request.method === "POST" || request.method === "OPTIONS") {
+            return createUploadedFileSubscriptionLink(request, url, env);
+        }
         if (request.method !== "GET") {
             return jsonResponse({ error: "Method not allowed" }, 405);
         }

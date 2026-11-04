@@ -168,6 +168,102 @@ test("issues signed links for valid node filenames", async () => {
     });
 });
 
+test("issues a subscription link for a newly uploaded file without waiting for the index", async () => {
+    const suppliedToken = "github_pat_test_upload_token";
+    await withMockGitHub(async (input, options) => {
+        const githubRequest = new URL(input);
+        assert.match(githubRequest.pathname, /\/repos\/example\/nodes\/contents\/test-node$/);
+        assert.equal(githubRequest.searchParams.get("ref"), "main");
+        assert.equal(new Headers(options.headers).get("Authorization"), `Bearer ${suppliedToken}`);
+        assert.equal(new Headers(options.headers).get("Cache-Control"), "no-cache");
+        return Response.json({ path: firstFileName, type: "file" });
+    }, async () => {
+        const response = await worker.fetch(
+            request("/api/subscription-link", {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${suppliedToken}`,
+                    "Content-Type": "application/json",
+                    Origin: "https://uploader.example",
+                },
+                body: JSON.stringify({ file: firstFileName }),
+            }),
+            env,
+        );
+        assert.equal(response.status, 200);
+        assert.equal(response.headers.get("Access-Control-Allow-Origin"), "*");
+        const body = await response.json();
+        const subscriptionUrl = new URL(body.url);
+        assert.equal(subscriptionUrl.hostname, host);
+        assert.equal(subscriptionUrl.pathname, `/sub/${firstFileName}`);
+        assert.match(subscriptionUrl.searchParams.get("sig"), /^[A-Za-z0-9_-]{43}$/);
+        assert.equal(body.url.includes(suppliedToken), false);
+    });
+});
+
+test("requires a valid repository token and an existing file for upload link requests", async () => {
+    const missingToken = await worker.fetch(
+        request("/api/subscription-link", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ file: firstFileName }),
+        }),
+        env,
+    );
+    assert.equal(missingToken.status, 401);
+
+    const invalidToken = await withMockGitHub(async (input, options) => {
+        assert.equal(new Headers(options.headers).get("Authorization"), "Bearer bad-token");
+        return new Response("not exposed", { status: 401 });
+    }, () =>
+        worker.fetch(
+            request("/api/subscription-link", {
+                method: "POST",
+                headers: {
+                    Authorization: "Bearer bad-token",
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ file: firstFileName }),
+            }),
+            env,
+        ),
+    );
+    assert.equal(invalidToken.status, 401);
+    assert.doesNotMatch(await invalidToken.text(), /not exposed|bad-token/);
+
+    const missingFile = await withMockGitHub(async () => new Response("{}", { status: 404 }), () =>
+        worker.fetch(
+            request("/api/subscription-link", {
+                method: "POST",
+                headers: {
+                    Authorization: "Bearer valid-token",
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ file: firstFileName }),
+            }),
+            env,
+        ),
+    );
+    assert.equal(missingFile.status, 404);
+});
+
+test("supports CORS preflight for upload-site subscription link requests", async () => {
+    const response = await worker.fetch(
+        request("/api/subscription-link", {
+            method: "OPTIONS",
+            headers: {
+                Origin: "https://uploader.example",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "authorization,content-type",
+            },
+        }),
+        env,
+    );
+    assert.equal(response.status, 204);
+    assert.equal(response.headers.get("Access-Control-Allow-Origin"), "*");
+    assert.match(response.headers.get("Access-Control-Allow-Headers"), /Authorization/i);
+});
+
 test("rejects invalid filenames when issuing subscription URLs", async () => {
     const cookie = await login();
     const response = await worker.fetch(
