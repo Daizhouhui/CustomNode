@@ -37,9 +37,7 @@ function configIsReady(env) {
         env.GITHUB_OWNER &&
             env.GITHUB_REPOSITORY &&
             env.GITHUB_REF &&
-            env.APP_HOST &&
-            env.SUBSCRIPTION_HOST &&
-            env.SUBSCRIPTION_ORIGIN,
+            env.APP_HOST,
     );
 }
 
@@ -86,26 +84,13 @@ async function createSubscriptionLink(url, env) {
         return jsonResponse({ error: "Service is not configured" }, 503);
     }
 
-    let subscriptionOrigin;
-    try {
-        subscriptionOrigin = new URL(env.SUBSCRIPTION_ORIGIN);
-    } catch {
-        console.error("Subscription origin is not a valid URL");
-        return jsonResponse({ error: "Service is not configured" }, 503);
-    }
-    if (
-        subscriptionOrigin.protocol !== "https:" ||
-        subscriptionOrigin.hostname.toLowerCase() !== env.SUBSCRIPTION_HOST.toLowerCase() ||
-        subscriptionOrigin.pathname !== "/" ||
-        subscriptionOrigin.search ||
-        subscriptionOrigin.hash
-    ) {
-        console.error("Subscription origin does not match the configured subscription host");
+    if (url.protocol !== "https:" || url.hostname.toLowerCase() !== env.APP_HOST.toLowerCase()) {
+        console.error("Subscription links must use the configured HTTPS host");
         return jsonResponse({ error: "Service is not configured" }, 503);
     }
 
     const signature = await signatureFor(fileName, env);
-    const subscriptionUrl = new URL(`/sub/${encodeURIComponent(fileName)}`, subscriptionOrigin);
+    const subscriptionUrl = new URL(`/sub/${encodeURIComponent(fileName)}`, url.origin);
     subscriptionUrl.searchParams.set("sig", signature);
     return jsonResponse({ url: subscriptionUrl.toString() });
 }
@@ -186,6 +171,13 @@ async function handleRequest(request, env) {
             return createSubscriptionLink(url, env);
         }
 
+        if (url.pathname.startsWith("/sub/")) {
+            if (request.method !== "GET") {
+                return jsonResponse({ error: "Not found" }, 404);
+            }
+            return serveSubscription(url, env);
+        }
+
         if (
             (request.method === "GET" || request.method === "HEAD") &&
             STATIC_PATHS.has(url.pathname) &&
@@ -194,13 +186,6 @@ async function handleRequest(request, env) {
             return env.ASSETS.fetch(request);
         }
         return jsonResponse({ error: "Not found" }, 404);
-    }
-
-    if (hostname === env.SUBSCRIPTION_HOST.toLowerCase()) {
-        if (request.method !== "GET" || !url.pathname.startsWith("/sub/")) {
-            return jsonResponse({ error: "Not found" }, 404);
-        }
-        return serveSubscription(url, env);
     }
 
     return jsonResponse({ error: "Not found" }, 404);

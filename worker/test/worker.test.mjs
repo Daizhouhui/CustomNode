@@ -7,8 +7,6 @@ const env = {
     GITHUB_REPOSITORY: "nodes",
     GITHUB_REF: "old",
     APP_HOST: "manage.example.com",
-    SUBSCRIPTION_HOST: "sub.example.com",
-    SUBSCRIPTION_ORIGIN: "https://sub.example.com",
     SUBSCRIPTION_SIGNING_KEY: "test-signing-key-with-sufficient-test-only-entropy",
     GITHUB_READ_TOKEN: "test-token",
 };
@@ -45,7 +43,7 @@ test("returns a signed subscription URL without exposing the signing key", async
     assert.equal(response.status, 200);
     const body = await response.json();
     const url = new URL(body.url);
-    assert.equal(url.hostname, env.SUBSCRIPTION_HOST);
+    assert.equal(url.hostname, env.APP_HOST);
     assert.equal(url.pathname, "/sub/nodes.yaml");
     assert.match(url.searchParams.get("sig"), /^[A-Za-z0-9_-]{43}$/);
     assert.equal(body.url.includes(env.SUBSCRIPTION_SIGNING_KEY), false);
@@ -76,7 +74,7 @@ test("rejects invalid signatures without requesting GitHub", async () => {
     };
     try {
         const response = await worker.fetch(
-            request(env.SUBSCRIPTION_HOST, "/sub/nodes.yaml?sig=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
+            request(env.APP_HOST, "/sub/nodes.yaml?sig=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
             env,
         );
         assert.equal(response.status, 404);
