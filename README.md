@@ -49,6 +49,8 @@
 
 管理页密码以 Worker Secret 保存。`SUBSCRIPTION_SIGNING_KEY` 用于签发订阅链接和保护短期登录会话；轮换后，已有登录态及旧订阅链接都会失效。修改管理员密码也会使已有登录态失效。订阅 URL 是 bearer 凭据：收到链接的人都能访问对应的单个节点文件，避免在公开页面展示链接，但无法阻止已获授权的用户复制或转发。
 
+管理页删除节点文件时，需要输入对私有 `CustomNode` 仓库具有 `Contents: Read and write` 权限的 GitHub Token；Token 仅用于当前浏览器操作，不会由 Worker 保存。删除会直接提交到 `main`；完成后需同步本地 `main` 并重新运行 `npm run deploy`，才能从 Worker 已打包的数据中移除该订阅文件。
+
 Cloudflare Free 有请求和 CPU 配额，具体限制以账号当前方案为准；这适合轻量个人使用，不是无限量或抗滥用的商业托管。
 
 ---
