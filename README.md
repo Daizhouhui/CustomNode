@@ -4,22 +4,52 @@
 
 ## 私有仓库与 Cloudflare Worker 部署
 
-`main` 分支部署到 Cloudflare Workers：Worker 同时提供管理页面和受签名保护的订阅入口；节点文件仍保留在私有 GitHub 仓库中。后续开发和 Worker 部署都使用 `main` 分支。不要把 Worker 的 Secrets 写入网页、构建产物或 GitHub 仓库变量。
+使用 Cloudflare Workers Free 的 `workers.dev` 地址，不需要自定义域名或 Zero Trust Access。私有仓库仍是唯一源码；Worker 部署包会包含节点文件，但 Worker 只会对登录后的管理页签发节点级签名链接，节点内容不会作为公开静态资源提供。
 
-### Cloudflare 配置
+如果仓库历史中曾提交过真实 Cookie、Token 或其他凭据，请先撤销并重新生成；删除文件或把仓库设为私有不能使旧凭据自动失效。
 
-1. **连接 Cloudflare 前先检查并撤销仓库里曾公开过的会话 Cookie、Token 等凭据。**Workers Builds 会检出整个仓库；构建脚本虽然只发布页面、更新页和图标，但不能因此把仓库中的有效凭据视为安全。
-2. 在 Cloudflare Workers Builds 中连接此私有仓库，并将生产分支设为 `main`。构建命令使用 `npm run build`，部署命令使用 `npm run deploy`。
-3. 当前单域名配置为 `manager.knny.dpdns.org`，管理页面使用 `/`，签名订阅接口使用 `/sub/<文件名>?sig=...`。此主机名必须属于 Cloudflare 上已激活的 Zone，且不能已有 CNAME；Worker Custom Domain 会创建 DNS 记录并签发证书。如果该域名不在你的 Cloudflare Zone 内，改用你已接入 Cloudflare 的域名或先完成域名接入。
-4. 保持 `workers_dev` 和 Preview URLs 关闭。先在 Zero Trust > Access > Applications 添加整个主机 `manager.knny.dpdns.org`，配置只允许你的账户登录；再添加更具体的 `manager.knny.dpdns.org/sub/*` 应用，并设为 `Bypass` / `Everyone`。更具体的路径规则会优先于整站规则，因此订阅客户端不会遇到网页登录；订阅内容仍由 Worker 的签名校验保护。先配好 Access 再部署 Worker，避免管理页面在配置 Access 前短暂公开。
-5. 保留 `GITHUB_REF` 为 `main`，让 Worker 从主分支读取节点文件。
-6. 在 Cloudflare Worker 的 Secrets 中设置：
-   - `GITHUB_READ_TOKEN`：只读、仅授权 `DaiZhouHui/CustomNode` Contents 的 fine-grained GitHub Token。
-   - `SUBSCRIPTION_SIGNING_KEY`：至少 32 个随机字节生成的长随机值。它是签发和校验订阅链接的服务端密钥，不是登录密码。
+### 首次部署
 
-网页中的订阅按钮会向受 Access 保护的管理页面请求签名链接。管理页面和订阅内容共用 `manager.knny.dpdns.org`，通过路径区分；每条链接仅能读取一个仓库根目录文件。节点内容由 Worker 使用只读 Token 从私有仓库读取。轮换 `SUBSCRIPTION_SIGNING_KEY` 会使以前签发的订阅链接失效。订阅链接本身是 bearer 凭据，转发链接的人也能访问对应文件。
+1. 在 Cloudflare 控制台的 Workers & Pages 中启用账号的 `workers.dev` 子域名（如果尚未启用）。无需设置 `manager.knny.dpdns.org`、自定义域名、Access 或 GitHub 自动构建。
+2. 在本机仓库切换到并更新 `main` 分支，然后在项目目录运行：
 
-GitHub Actions 会在 `main` 分支的节点文件变更后更新索引；定时任务也更新 `main`。Cloudflare Worker 只发布索引页面、更新页面和图标，不会把仓库根目录整体作为静态资源发布。
+   ```powershell
+   npm install
+   npx wrangler login
+   ```
+
+   如果 Wrangler 已登录，可跳过登录命令。
+3. 在本机终端设置管理员密码。密码至少 24 个字符，建议使用密码管理器生成随机密码并保存；不要发到聊天或提交到仓库：
+
+   ```powershell
+   npx wrangler secret put ADMIN_PASSWORD
+   ```
+
+4. 设置独立的订阅签名密钥。执行下面的命令，在本机生成至少 32 个随机字节；将输出复制到 Wrangler 的密钥输入提示中，不要把输出保存到仓库：
+
+   ```powershell
+   node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+   npx wrangler secret put SUBSCRIPTION_SIGNING_KEY
+   ```
+
+5. 部署 Worker：
+
+   ```powershell
+   npm run deploy
+   ```
+
+   命令会将 `index.html`、登录页及当前索引列出的节点文件打包，再部署到 `customnode-private.<你的 workers.dev 子域名>.workers.dev`。如果 Wrangler 提示先启用 `workers.dev`，按提示完成一次性设置后重试。
+6. 打开 Wrangler 输出的 `workers.dev` URL，使用管理员密码登录；管理页登录态有效 12 小时。
+
+### 后续更新
+
+后续开发仍在 `main`。节点文件或页面有更新后，先让本机 `main` 与 GitHub 同步，再运行 `npm run deploy`。GitHub Actions 会更新索引；Worker 部署仍由本机命令手动触发，不会连接私有仓库的自动构建服务。
+
+`GITHUB_OWNER`、`GITHUB_REPOSITORY` 和 `GITHUB_REF` 在 [wrangler.jsonc](./wrangler.jsonc) 中固定为 `DaiZhouHui/CustomNode` 的 `main`。部署时构建脚本只从索引列出的根目录节点文件及 `.yaml` 文件打包到 Worker；不需要 GitHub Token。节点内容作为 Worker 程序的一部分存储在你的 Cloudflare 账号中，不能把它理解成 Cloudflare 账号本身也无法读取。
+
+管理页密码以 Worker Secret 保存。`SUBSCRIPTION_SIGNING_KEY` 用于签发订阅链接和保护短期登录会话；轮换后，已有登录态及旧订阅链接都会失效。修改管理员密码也会使已有登录态失效。订阅 URL 是 bearer 凭据：收到链接的人都能访问对应的单个节点文件，避免在公开页面展示链接，但无法阻止已获授权的用户复制或转发。
+
+Cloudflare Free 有请求和 CPU 配额，具体限制以账号当前方案为准；这适合轻量个人使用，不是无限量或抗滥用的商业托管。
 
 ---
 旧的 GitHub Pages 链接仅作历史参考，不应再用于发布节点内容；静态页面无法在服务端保护订阅文件。

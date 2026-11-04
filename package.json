@@ -4,8 +4,8 @@
   "type": "module",
   "scripts": {
     "build": "node worker/build-assets.mjs",
-    "deploy": "wrangler deploy",
-    "test:worker": "node --test worker/test/*.test.mjs"
+    "deploy": "npm run build && wrangler deploy",
+    "test:worker": "npm run build && node --test worker/test/*.test.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"

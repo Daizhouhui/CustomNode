@@ -2,14 +2,8 @@
   "name": "customnode-private",
   "main": "worker/src/index.js",
   "compatibility_date": "2026-11-04",
-  "workers_dev": false,
+  "workers_dev": true,
   "preview_urls": false,
-  "routes": [
-    {
-      "pattern": "manager.knny.dpdns.org",
-      "custom_domain": true
-    }
-  ],
   "assets": {
     "directory": "./worker/public",
     "binding": "ASSETS",
@@ -18,7 +12,6 @@
   "vars": {
     "GITHUB_OWNER": "DaiZhouHui",
     "GITHUB_REPOSITORY": "CustomNode",
-    "GITHUB_REF": "main",
-    "APP_HOST": "manager.knny.dpdns.org"
+    "GITHUB_REF": "main"
   }
 }

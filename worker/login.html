@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="referrer" content="no-referrer">
+    <title>CustomNode 管理登录</title>
+    <style>
+        :root { color-scheme: light; font-family: system-ui, sans-serif; color: #1e293b; }
+        body { min-height: 100vh; margin: 0; display: grid; place-items: center; background: #f0f9ff; }
+        main { box-sizing: border-box; width: min(92vw, 390px); padding: 32px; border-radius: 16px; background: white; box-shadow: 0 8px 32px #1e293b1a; }
+        h1 { margin: 0 0 8px; font-size: 1.5rem; }
+        p { color: #64748b; line-height: 1.5; }
+        label { display: block; margin: 24px 0 8px; font-weight: 600; }
+        input, button { box-sizing: border-box; width: 100%; padding: 12px; border-radius: 8px; font: inherit; }
+        input { border: 1px solid #cbd5e1; }
+        button { margin-top: 16px; border: 0; background: #4f46e5; color: white; font-weight: 700; cursor: pointer; }
+        button:disabled { opacity: .65; cursor: wait; }
+        #error { min-height: 1.5em; color: #b91c1c; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>CustomNode 管理登录</h1>
+        <p>登录后可查看节点索引并生成受保护的订阅链接。</p>
+        <form id="login-form">
+            <label for="password">管理密码</label>
+            <input id="password" name="password" type="password" autocomplete="current-password" required autofocus>
+            <button id="submit" type="submit">登录</button>
+            <p id="error" role="alert"></p>
+        </form>
+    </main>
+    <script>
+        const form = document.getElementById("login-form");
+        const submit = document.getElementById("submit");
+        const error = document.getElementById("error");
+
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            submit.disabled = true;
+            error.textContent = "";
+            try {
+                const response = await fetch("/api/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ password: form.elements.password.value }),
+                });
+                if (!response.ok) {
+                    error.textContent = response.status === 401 ? "密码错误，请重试。" : "登录失败，请稍后重试。";
+                    return;
+                }
+                window.location.assign("/");
+            } catch {
+                error.textContent = "无法连接服务，请检查网络后重试。";
+            } finally {
+                submit.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
