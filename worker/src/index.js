@@ -64,18 +64,23 @@ function githubHeaders(env, accept) {
 }
 
 async function indexedRepositoryFiles(env) {
-    const response = await fetchRepositoryFile("files_info.json", env);
+    const response = await fetchRepositoryFile("index.html", env);
     if (!response.ok) {
         return { response };
     }
 
     try {
-        const index = await response.json();
-        if (!Array.isArray(index.files)) {
-            throw new Error("Missing files array");
+        const html = await response.text();
+        const match = html.match(/\bconst\s+allFiles\s*=\s*(\[[^\r\n]*\]);/);
+        if (!match) {
+            throw new Error("Missing allFiles declaration");
+        }
+        const indexFiles = JSON.parse(match[1]);
+        if (!Array.isArray(indexFiles)) {
+            throw new Error("Invalid allFiles array");
         }
         const files = new Set();
-        for (const item of index.files) {
+        for (const item of indexFiles) {
             for (const fileName of [item.node_name, item.yaml_name]) {
                 if (validFileName(fileName)) {
                     files.add(fileName);

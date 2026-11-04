@@ -19,7 +19,10 @@ function request(path, { method = "GET", headers = {}, body } = {}) {
 }
 
 function githubIndex(files = [firstFileName]) {
-    return Response.json({ files: files.map((nodeName) => ({ node_name: nodeName })) });
+    const allFiles = files.map((nodeName) => ({ node_name: nodeName }));
+    return new Response(`<script>const allFiles = ${JSON.stringify(allFiles)};</script>`, {
+        headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
 }
 
 async function login() {
@@ -268,7 +271,8 @@ test("deletes repository files through the Worker secret only for an authenticat
     await withMockGitHub(async (input, options) => {
         const githubRequest = new URL(input);
         assert.equal(new Headers(options.headers).get("Authorization"), `Bearer ${env.GITHUB_TOKEN}`);
-        if (githubRequest.pathname.endsWith("/files_info.json")) {
+        if (githubRequest.pathname.endsWith("/index.html")) {
+            assert.equal(options.method, undefined);
             return githubIndex();
         }
         if (options.method === "DELETE") {
@@ -306,6 +310,48 @@ test("deletes repository files through the Worker secret only for an authenticat
         env,
     );
     assert.equal(denied.status, 401);
+});
+
+test("deletes files listed on the current index page even when metadata JSON is stale", async () => {
+    const cookie = await login();
+    const files = ["t1", "t1.yaml"];
+    const deletedFiles = [];
+
+    const response = await withMockGitHub(async (input, options) => {
+        const githubRequest = new URL(input);
+        if (githubRequest.pathname.endsWith("/index.html")) {
+            return new Response(
+                `<script>const allFiles = ${JSON.stringify([{ node_name: files[0], yaml_name: files[1] }])};</script>`,
+                { headers: { "Content-Type": "text/html; charset=utf-8" } },
+            );
+        }
+        if (options.method === "DELETE") {
+            deletedFiles.push(decodeURIComponent(githubRequest.pathname.split("/").pop()));
+            return Response.json({ commit: { sha: `deleted-${deletedFiles.length}` } });
+        }
+        return Response.json({
+            path: decodeURIComponent(githubRequest.pathname.split("/").pop()),
+            type: "file",
+            sha: "file-sha",
+        });
+    }, () =>
+        worker.fetch(
+            request("/api/files/delete", {
+                method: "POST",
+                headers: {
+                    Cookie: cookie,
+                    Origin: `https://${host}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ files }),
+            }),
+            env,
+        ),
+    );
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(deletedFiles, files);
+    assert.deepEqual((await response.json()).results, files.map((file) => ({ file, success: true })));
 });
 
 test("rejects deletion requests with invalid origin or unsafe paths", async () => {
