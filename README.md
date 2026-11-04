@@ -4,13 +4,13 @@
 
 ## 私有仓库与 Cloudflare Worker 部署
 
-使用 Cloudflare Workers Free 的 `workers.dev` 地址，不需要自定义域名或 Zero Trust Access。私有仓库仍是唯一源码；Worker 部署包会包含节点文件，但 Worker 只会对登录后的管理页签发节点级签名链接，节点内容不会作为公开静态资源提供。
+使用 Cloudflare Workers Free 和自定义域名 `manager.knny.dpdns.org`，不使用 Zero Trust Access。管理页和订阅链接共用该域名。私有仓库仍是唯一源码；Worker 部署包会包含节点文件，但 Worker 只会对登录后的管理页签发节点级签名链接，节点内容不会作为公开静态资源提供。
 
 如果仓库历史中曾提交过真实 Cookie、Token 或其他凭据，请先撤销并重新生成；删除文件或把仓库设为私有不能使旧凭据自动失效。
 
 ### 首次部署
 
-1. 在 Cloudflare 控制台的 Workers & Pages 中启用账号的 `workers.dev` 子域名（如果尚未启用）。无需设置 `manager.knny.dpdns.org`、自定义域名、Access 或 GitHub 自动构建。
+1. 在 Cloudflare 控制台的 Workers & Pages 中，为 `customnode-private` Worker 添加自定义域名 `manager.knny.dpdns.org`。确认该主机名没有已有 DNS 记录或其他服务绑定；不要使用已占用的 `sub.knny.dpdns.org`。不需要启用 `workers.dev` 或配置 Access。
 2. 在本机仓库切换到并更新 `main` 分支，然后在项目目录运行：
 
    ```powershell
@@ -32,14 +32,14 @@
    npx wrangler secret put SUBSCRIPTION_SIGNING_KEY
    ```
 
-5. 部署 Worker：
+5. 确认完成自定义域名绑定后部署 Worker：
 
    ```powershell
    npm run deploy
    ```
 
-   命令会将 `index.html`、登录页及当前索引列出的节点文件打包，再部署到 `customnode-private.<你的 workers.dev 子域名>.workers.dev`。如果 Wrangler 提示先启用 `workers.dev`，按提示完成一次性设置后重试。
-6. 打开 Wrangler 输出的 `workers.dev` URL，使用管理员密码登录；管理页登录态有效 12 小时。
+   命令会将 `index.html`、登录页及当前索引列出的节点文件打包，并部署到 `manager.knny.dpdns.org`。
+6. 打开 `https://manager.knny.dpdns.org`，使用管理员密码登录；管理页登录态有效 12 小时。
 
 ### 后续更新
 

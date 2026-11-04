@@ -8,9 +8,10 @@ const env = {
     GITHUB_OWNER: "example",
     GITHUB_REPOSITORY: "nodes",
     GITHUB_REF: "main",
+    APP_HOST: "manager.example.com",
     SUBSCRIPTION_SIGNING_KEY: "test-signing-key-with-sufficient-test-only-entropy",
 };
-const host = "customnode-test.account.workers.dev";
+const host = env.APP_HOST;
 const firstFileName = privateFiles.keys().next().value;
 
 function request(path, { method = "GET", headers = {}, body } = {}) {
@@ -30,9 +31,9 @@ async function login() {
     return response.headers.get("Set-Cookie").split(";")[0];
 }
 
-test("rejects hosts that are not workers.dev", async () => {
+test("rejects hosts other than the configured custom domain", async () => {
     const response = await worker.fetch(
-        new Request("https://manager.example.com/", { method: "GET" }),
+        new Request("https://other.example.com/", { method: "GET" }),
         env,
     );
     assert.equal(response.status, 404);
@@ -52,6 +53,14 @@ test("login page is public while manager assets are protected", async () => {
 
     const loginPage = await worker.fetch(request("/login.html"), testEnv);
     assert.equal(loginPage.status, 200);
+    assert.equal(servedPath, "/login.html");
+
+    const loginRoute = await worker.fetch(request("/login"), testEnv);
+    assert.equal(loginRoute.status, 200);
+    assert.equal(servedPath, "/login.html");
+
+    const trailingSlashLoginRoute = await worker.fetch(request("/login/"), testEnv);
+    assert.equal(trailingSlashLoginRoute.status, 200);
     assert.equal(servedPath, "/login.html");
 
     const managerPage = await worker.fetch(request("/"), testEnv);

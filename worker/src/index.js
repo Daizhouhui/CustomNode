@@ -48,8 +48,8 @@ function configIsReady(env) {
     );
 }
 
-function isWorkersDevHost(hostname) {
-    return hostname.toLowerCase().endsWith(".workers.dev");
+function isConfiguredHost(hostname, env) {
+    return typeof env.APP_HOST === "string" && hostname.toLowerCase() === env.APP_HOST.toLowerCase();
 }
 
 async function hmacKey(env) {
@@ -249,7 +249,7 @@ function managerAssetPath(pathname) {
 
 async function handleRequest(request, env) {
     const url = new URL(request.url);
-    if (!isWorkersDevHost(url.hostname)) {
+    if (!isConfiguredHost(url.hostname, env)) {
         return jsonResponse({ error: "Not found" }, 404);
     }
     if (!configIsReady(env)) {
@@ -276,7 +276,7 @@ async function handleRequest(request, env) {
         }
         return serveSubscription(url, env);
     }
-    if (url.pathname === "/login.html") {
+    if (url.pathname === "/login" || url.pathname === "/login/" || url.pathname === "/login.html") {
         if (request.method !== "GET" && request.method !== "HEAD") {
             return jsonResponse({ error: "Method not allowed" }, 405);
         }
