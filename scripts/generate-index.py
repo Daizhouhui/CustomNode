@@ -1630,17 +1630,6 @@ body {{
                 <p style="font-weight: 700; margin: 10px 0;" id="deleteNodeName">待删除项目</p>
                 <div id="deleteListPreview" style="margin: 12px 0; padding: 12px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; max-height: 180px; overflow-y: auto; font-size: 14px; color: #1f2937;"></div>
                 <p>此操作将永久删除这些节点文件及对应的配置文件，且无法恢复！</p>
-                <div class="form-group">
-                    <label for="githubToken">
-                        <i class="fas fa-key"></i>
-                        请输入 GitHub Token:
-                    </label>
-                    <input type="password" id="githubToken" class="form-control"
-                           placeholder="输入具有删除权限的GitHub令牌" autocomplete="off">
-                    <p style="font-size: 12px; color: #94a3b8; margin-top: 5px;">
-                        ⚠️ 此令牌仅用于本次删除操作，不会被保存
-                    </p>
-                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="modal-btn modal-btn-cancel" onclick="closeDeleteModal()">
@@ -1836,11 +1825,10 @@ body {{
             document.getElementById('deleteNodeName').textContent = currentDeleteDisplayName;
             const preview = document.getElementById('deleteListPreview');
             preview.innerHTML = selected.map(item => `<div>• ${{item.display_name}}</div>`).join('');
-            document.getElementById('githubToken').value = '';
             document.getElementById('confirmDeleteBtn').disabled = false;
             const modal = document.getElementById('deleteModal');
             modal.classList.add('show');
-            setTimeout(() => {{ document.getElementById('githubToken').focus(); }}, 300);
+            setTimeout(() => {{ document.getElementById('confirmDeleteBtn').focus(); }}, 300);
         }}
 
         // 显示/隐藏操作列
@@ -1874,15 +1862,14 @@ body {{
             document.getElementById('deleteNodeName').textContent = file.display_name;
             const preview = document.getElementById('deleteListPreview');
             preview.innerHTML = `<div>• ${{file.display_name}}</div>`;
-            document.getElementById('githubToken').value = '';
             document.getElementById('confirmDeleteBtn').disabled = false;
             
             const modal = document.getElementById('deleteModal');
             modal.classList.add('show');
             
-            // 聚焦到输入框
+            // 聚焦到确认按钮
             setTimeout(() => {{
-                document.getElementById('githubToken').focus();
+                document.getElementById('confirmDeleteBtn').focus();
             }}, 300);
         }}
         
@@ -1896,14 +1883,6 @@ body {{
         
         // 确认删除
         async function confirmDelete() {{
-            const token = document.getElementById('githubToken').value.trim();
-            
-            if (!token) {{
-                showToast('请输入GitHub Token', 'error');
-                document.getElementById('githubToken').focus();
-                return;
-            }}
-            
             const deleteBtn = document.getElementById('confirmDeleteBtn');
             const originalText = deleteBtn.innerHTML;
             deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 删除中...';
@@ -1911,29 +1890,30 @@ body {{
             
             try {{
                 showToast('正在删除选中的节点文件...', 'info');
-                const results = [];
-                for (const item of currentDeleteItems) {{
-                    const result = {{ display_name: item.display_name, success: true, details: [] }};
-                    if (item.node_name) {{
-                        const nodeResult = await deleteGitHubFile(item.node_name, token);
-                        if (!nodeResult.success) {{
-                            result.success = false;
-                            result.details.push(`节点文件失败: ${{nodeResult.error}}`);
-                        }} else {{
-                            result.details.push('节点文件已删除');
-                        }}
-                    }}
-                    if (item.yaml_name) {{
-                        const yamlResult = await deleteGitHubFile(item.yaml_name, token);
-                        if (!yamlResult.success) {{
-                            result.success = false;
-                            result.details.push(`配置文件失败: ${{yamlResult.error}}`);
-                        }} else {{
-                            result.details.push('配置文件已删除');
-                        }}
-                    }}
-                    results.push(result);
+                const fileNames = [...new Set(currentDeleteItems.flatMap(item =>
+                    [item.node_name, item.yaml_name].filter(Boolean)
+                ))];
+                const response = await fetch('/api/files/delete', {{
+                    method: 'POST',
+                    headers: {{ 'Content-Type': 'application/json', 'Accept': 'application/json' }},
+                    body: JSON.stringify({{ files: fileNames }})
+                }});
+                const responseBody = await response.json();
+                if (!response.ok) {{
+                    throw new Error(responseBody.error || '删除请求失败');
                 }}
+                const fileResults = new Map(responseBody.results.map(result => [result.file, result]));
+                const results = currentDeleteItems.map(item => {{
+                    const itemFiles = [item.node_name, item.yaml_name].filter(Boolean);
+                    const failedFiles = itemFiles
+                        .map(fileName => fileResults.get(fileName))
+                        .filter(result => !result || !result.success);
+                    return {{
+                        display_name: item.display_name,
+                        success: failedFiles.length === 0,
+                        details: failedFiles.map(result => `${{result.file}}: ${{result.error || '删除失败'}}`)
+                    }};
+                }});
 
                 const failed = results.filter(r => !r.success);
                 if (failed.length > 0) {{
@@ -1943,9 +1923,13 @@ body {{
                     showToast(`已删除 ${{currentDeleteItems.length}} 个节点模组`, 'success');
                 }}
 
-                // 从表格中移除已删除行
+                const deletedItems = currentDeleteItems.filter(
+                    item => !failed.some(result => result.display_name === item.display_name)
+                );
+
+                // Remove only items GitHub confirmed as deleted.
                 const rows = document.querySelectorAll('#tableBody tr');
-                currentDeleteItems.forEach(item => {{
+                deletedItems.forEach(item => {{
                     for (const row of rows) {{
                         if (row.classList.contains('date-divider')) continue;
                         const nameCell = row.querySelector('.node-name');
@@ -1958,7 +1942,7 @@ body {{
                 }});
 
                 // 更新 allFiles
-                currentDeleteItems.forEach(item => {{
+                deletedItems.forEach(item => {{
                     const idx = allFiles.findIndex(f => f.display_name === item.display_name);
                     if (idx !== -1) {{
                         allFiles.splice(idx, 1);
@@ -1970,9 +1954,22 @@ body {{
                 // 清理可能孤立的日期分隔行
                 updateDateDividerVisibility();
 
+                if (failed.length > 0) {{
+                    currentDeleteItems = currentDeleteItems.filter(
+                        item => failed.some(result => result.display_name === item.display_name)
+                    );
+                    document.getElementById('deleteNodeName').textContent = '部分删除失败，请检查错误后重试';
+                    document.getElementById('deleteListPreview').textContent = failed
+                        .map(result => `【${{result.display_name}}】${{result.details.join('; ')}}`)
+                        .join('\\n');
+                    deleteBtn.innerHTML = originalText;
+                    deleteBtn.disabled = false;
+                    return;
+                }}
+
                 setTimeout(() => {{
                     closeDeleteModal();
-                    showToast('删除操作完成，建议手动更新索引', 'info');
+                    showToast('GitHub 文件已删除；索引更新完成后刷新页面即可，无需重新部署 Worker', 'info');
                 }}, 1000);
             }} catch (error) {{
                 console.error('删除失败:', error);
@@ -1980,66 +1977,6 @@ body {{
                 deleteBtn.innerHTML = originalText;
                 deleteBtn.disabled = false;
             }}
-        }}
-        
-        // 删除GitHub文件
-        async function deleteGitHubFile(fileName, token) {{
-            const encodedName = encodeURIComponent(fileName);
-            const getUrl = `https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/${{encodedName}}`;
-            
-            const getResponse = await fetch(getUrl, {{
-                headers: {{
-                    'Authorization': `token ${{token}}`,
-                    'Accept': 'application/vnd.github.v3+json'
-                }}
-            }});
-            
-            if (!getResponse.ok) {{
-                if (getResponse.status === 404) {{
-                    return {{ success: true, message: '文件不存在或已被删除' }};
-                }}
-                try {{
-                    const errorData = await getResponse.json();
-                    return {{ success: false, error: errorData.message || '获取文件SHA失败' }};
-                }} catch {{
-                    return {{ success: false, error: '获取文件SHA失败' }};
-                }}
-            }}
-            
-            const fileData = await getResponse.json();
-            const sha = fileData.sha;
-            
-            const deleteUrl = `https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/${{encodedName}}`;
-            const deleteData = {{
-                message: `Delete ${{fileName}} via CustomNode Manager`,
-                sha: sha,
-                branch: '{BRANCH}',
-                committer: {{
-                    name: 'CustomNode Manager',
-                    email: 'noreply@github.com'
-                }}
-            }};
-            
-            const deleteResponse = await fetch(deleteUrl, {{
-                method: 'DELETE',
-                headers: {{
-                    'Authorization': `token ${{token}}`,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/vnd.github.v3+json'
-                }},
-                body: JSON.stringify(deleteData)
-            }});
-            
-            if (!deleteResponse.ok) {{
-                try {{
-                    const errorData = await deleteResponse.json();
-                    return {{ success: false, error: errorData.message || '删除文件失败' }};
-                }} catch {{
-                    return {{ success: false, error: '删除文件失败' }};
-                }}
-            }}
-            
-            return {{ success: true, message: '文件删除成功' }};
         }}
         
         // 更新统计信息
@@ -3130,7 +3067,7 @@ def main():
     print(f"📊 统计: {len(files_info)}个节点模组")
     print("🌐 在浏览器中打开 index.html 查看效果")
     print("🔄 更新控制台: update-index.html")
-    print("🗑️  新增功能: 删除节点模组（需要GitHub Token）")
+    print("🗑️  新增功能: 删除节点模组（通过 Worker Secret 调用 GitHub API）")
 
 
 if __name__ == "__main__":

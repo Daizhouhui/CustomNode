@@ -4,7 +4,7 @@
 
 ## 私有仓库与 Cloudflare Worker 部署
 
-使用 Cloudflare Workers Free 和自定义域名 `manager.knny.dpdns.org`，不使用 Zero Trust Access。管理页和订阅链接共用该域名。私有仓库仍是唯一源码；Worker 部署包会包含节点文件，但 Worker 只会对登录后的管理页签发节点级签名链接，节点内容不会作为公开静态资源提供。
+使用 Cloudflare Workers Free 和自定义域名 `manager.knny.dpdns.org`，不使用 Zero Trust Access。管理页和订阅链接共用该域名。私有仓库仍是唯一源码；Worker 使用服务端 GitHub Secret 按请求读取 `main` 中的管理页和节点文件，不会把节点文件打进公开静态资源。
 
 如果仓库历史中曾提交过真实 Cookie、Token 或其他凭据，请先撤销并重新生成；删除文件或把仓库设为私有不能使旧凭据自动失效。
 
@@ -32,24 +32,30 @@
    npx wrangler secret put SUBSCRIPTION_SIGNING_KEY
    ```
 
-5. 确认完成自定义域名绑定后部署 Worker：
+5. 确认 `.env` 中 `GITHUB_TOKEN` 对 `DaiZhouHui/CustomNode` 有 `Contents: Read and write` 权限；如果没有，请创建仅授权该仓库的 Fine-grained personal access token。运行命令后，将 Token 粘贴到 Wrangler 的隐藏输入提示中；不要把 Token 发到聊天、写进 `wrangler.jsonc` 或网页代码：
+
+   ```powershell
+   npx wrangler secret put GITHUB_TOKEN
+   ```
+
+   `.env` 只存在于本机，Cloudflare Worker 无法直接读取；此步骤将 Token 安全保存为 Cloudflare Worker Secret。读取节点需要 Contents 读取权限，管理页删除节点还需要写入权限。
+6. 确认完成自定义域名绑定后部署 Worker：
 
    ```powershell
    npm run deploy
    ```
 
-   命令会将 `index.html`、登录页及当前索引列出的节点文件打包，并部署到 `manager.knny.dpdns.org`。
-6. 打开 `https://manager.knny.dpdns.org`，使用管理员密码登录；管理页登录态有效 12 小时。
+   命令会部署 Worker 与登录页，不会打包节点文件。打开 `https://manager.knny.dpdns.org`，使用管理员密码登录；管理页登录态有效 12 小时。
 
 ### 后续更新
 
-后续开发仍在 `main`。节点文件或页面有更新后，先让本机 `main` 与 GitHub 同步，再运行 `npm run deploy`。GitHub Actions 会更新索引；Worker 部署仍由本机命令手动触发，不会连接私有仓库的自动构建服务。
+后续开发仍在 `main`。节点文件内容由 Worker 在订阅请求时从 GitHub 读取；管理页每次打开时也会读取 GitHub `main` 上的最新 `index.html`。节点新增或删除后，现有 GitHub Actions 会更新索引，完成后重新打开管理页即可看到更新，不需要为节点文件变化重新部署 Worker。管理页的删除按钮由 Worker 使用服务端 Token 调用 GitHub API，不再要求在网页里输入 Token。
 
-`GITHUB_OWNER`、`GITHUB_REPOSITORY` 和 `GITHUB_REF` 在 [wrangler.jsonc](./wrangler.jsonc) 中固定为 `DaiZhouHui/CustomNode` 的 `main`。部署时构建脚本只从索引列出的根目录节点文件及 `.yaml` 文件打包到 Worker；不需要 GitHub Token。节点内容作为 Worker 程序的一部分存储在你的 Cloudflare 账号中，不能把它理解成 Cloudflare 账号本身也无法读取。
+`GITHUB_OWNER`、`GITHUB_REPOSITORY` 和 `GITHUB_REF` 在 [wrangler.jsonc](./wrangler.jsonc) 中固定为 `DaiZhouHui/CustomNode` 的 `main`。Worker 只允许读取有效节点文件名或 `.yaml` 文件，不会将 GitHub Token 发给浏览器。GitHub Token 作为 Worker Secret 保存在 Cloudflare 中，具有仓库内容读写权限；保护好 Cloudflare 账号，并在不再需要时撤销该 Token。
 
 管理页密码以 Worker Secret 保存。`SUBSCRIPTION_SIGNING_KEY` 用于签发订阅链接和保护短期登录会话；轮换后，已有登录态及旧订阅链接都会失效。修改管理员密码也会使已有登录态失效。订阅 URL 是 bearer 凭据：收到链接的人都能访问对应的单个节点文件，避免在公开页面展示链接，但无法阻止已获授权的用户复制或转发。
 
-管理页删除节点文件时，需要输入对私有 `CustomNode` 仓库具有 `Contents: Read and write` 权限的 GitHub Token；Token 仅用于当前浏览器操作，不会由 Worker 保存。删除会直接提交到 `main`；完成后需同步本地 `main` 并重新运行 `npm run deploy`，才能从 Worker 已打包的数据中移除该订阅文件。
+管理页删除节点文件会直接提交到 GitHub `main`。现有索引生成 GitHub Actions 完成后，重新打开管理页即可看到变化；订阅文件删除后，已有签名订阅链接也会因 GitHub 返回文件不存在而失效。
 
 Cloudflare Free 有请求和 CPU 配额，具体限制以账号当前方案为准；这适合轻量个人使用，不是无限量或抗滥用的商业托管。
 

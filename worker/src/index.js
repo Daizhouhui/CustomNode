@@ -1,5 +1,3 @@
-import privateFiles from "../generated/private-data.js";
-
 const encoder = new TextEncoder();
 const FILE_NAME_PATTERN = /^[^/\\\u0000-\u001f\u007f]{1,240}$/u;
 const STATIC_PATHS = new Set(["/", "/index.html", "/update-index.html", "/style/ico.png"]);
@@ -46,6 +44,176 @@ function configIsReady(env) {
             env.GITHUB_REF &&
             signingKeyIsConfigured(env),
     );
+}
+
+function githubFileUrl(fileName, env) {
+    const owner = encodeURIComponent(env.GITHUB_OWNER);
+    const repository = encodeURIComponent(env.GITHUB_REPOSITORY);
+    const path = encodeURIComponent(fileName);
+    const ref = encodeURIComponent(env.GITHUB_REF);
+    return `https://api.github.com/repos/${owner}/${repository}/contents/${path}?ref=${ref}`;
+}
+
+function githubHeaders(env, accept) {
+    return {
+        Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+        Accept: accept,
+        "X-GitHub-Api-Version": "2022-11-28",
+    };
+}
+
+async function indexedRepositoryFiles(env) {
+    const response = await fetchRepositoryFile("files_info.json", env);
+    if (!response.ok) {
+        return { response };
+    }
+
+    try {
+        const index = await response.json();
+        if (!Array.isArray(index.files)) {
+            throw new Error("Missing files array");
+        }
+        const files = new Set();
+        for (const item of index.files) {
+            for (const fileName of [item.node_name, item.yaml_name]) {
+                if (validFileName(fileName)) {
+                    files.add(fileName);
+                }
+            }
+        }
+        return { files };
+    } catch (error) {
+        console.error("GitHub file index is invalid", error);
+        return { response: jsonResponse({ error: "Repository index is invalid" }, 502) };
+    }
+}
+
+async function fetchRepositoryFile(fileName, env) {
+    if (typeof env.GITHUB_TOKEN !== "string" || !env.GITHUB_TOKEN) {
+        console.error("GitHub token is not configured");
+        return jsonResponse({ error: "Repository access is not configured" }, 503);
+    }
+
+    let response;
+    try {
+        response = await fetch(githubFileUrl(fileName, env), {
+            headers: githubHeaders(env, "application/vnd.github.raw+json"),
+        });
+    } catch (error) {
+        console.error("GitHub file request failed", error);
+        return jsonResponse({ error: "Unable to reach repository" }, 502);
+    }
+    if (response.status === 404) {
+        return jsonResponse({ error: "File not found" }, 404);
+    }
+    if (!response.ok) {
+        console.error("GitHub file read failed", response.status);
+        return jsonResponse({ error: "Unable to read repository file" }, 502);
+    }
+    return new Response(response.body, {
+        headers: {
+            "Content-Type": fileName.toLowerCase().endsWith(".html")
+                ? "text/html; charset=utf-8"
+                : fileName.toLowerCase().endsWith(".yaml")
+                    ? "application/yaml; charset=utf-8"
+                    : "text/plain; charset=utf-8",
+            "Cache-Control": "no-store",
+            "X-Content-Type-Options": "nosniff",
+        },
+    });
+}
+
+async function deleteGitHubFile(fileName, env) {
+    const url = githubFileUrl(fileName, env);
+    const headers = githubHeaders(env, "application/vnd.github+json");
+    try {
+        const fileResponse = await fetch(url, { headers });
+        if (fileResponse.status === 404) {
+            return { file: fileName, success: true };
+        }
+        if (!fileResponse.ok) {
+            console.error("GitHub file lookup for deletion failed", fileResponse.status);
+            return { file: fileName, success: false, error: "Unable to inspect repository file" };
+        }
+
+        const file = await fileResponse.json();
+        if (file.path !== fileName || file.type !== "file" || typeof file.sha !== "string") {
+            return { file: fileName, success: false, error: "Repository path is not a regular file" };
+        }
+
+        const deleteResponse = await fetch(url, {
+            method: "DELETE",
+            headers: { ...headers, "Content-Type": "application/json" },
+            body: JSON.stringify({
+                message: `Delete ${fileName} via CustomNode Manager`,
+                sha: file.sha,
+                branch: env.GITHUB_REF,
+            }),
+        });
+        if (!deleteResponse.ok) {
+            let error = "GitHub rejected the deletion";
+            try {
+                const body = await deleteResponse.json();
+                if (typeof body.message === "string") {
+                    error = body.message;
+                }
+            } catch {
+                // Keep the generic error when GitHub does not return JSON.
+            }
+            console.error("GitHub file deletion failed", deleteResponse.status);
+            return { file: fileName, success: false, error };
+        }
+        return { file: fileName, success: true };
+    } catch (error) {
+        console.error("GitHub file deletion request failed", error);
+        return { file: fileName, success: false, error: "Unable to reach GitHub" };
+    }
+}
+
+async function handleDeleteFiles(request, env) {
+    if (request.method !== "POST") {
+        return jsonResponse({ error: "Method not allowed" }, 405, { Allow: "POST" });
+    }
+    if (request.headers.get("Origin") !== `https://${env.APP_HOST}`) {
+        return jsonResponse({ error: "Invalid request origin" }, 403);
+    }
+    if (!request.headers.get("Content-Type")?.toLowerCase().startsWith("application/json")) {
+        return jsonResponse({ error: "Expected JSON request" }, 415);
+    }
+    if (typeof env.GITHUB_TOKEN !== "string" || !env.GITHUB_TOKEN) {
+        console.error("GitHub token is not configured");
+        return jsonResponse({ error: "Repository access is not configured" }, 503);
+    }
+
+    let body;
+    try {
+        body = await request.json();
+    } catch {
+        return jsonResponse({ error: "Invalid request" }, 400);
+    }
+    if (
+        !Array.isArray(body?.files) ||
+        body.files.length === 0 ||
+        body.files.length > 40 ||
+        body.files.some((fileName) => !validFileName(fileName)) ||
+        new Set(body.files).size !== body.files.length
+    ) {
+        return jsonResponse({ error: "Invalid file list" }, 400);
+    }
+
+    const indexedFiles = await indexedRepositoryFiles(env);
+    if (!indexedFiles.files) {
+        return indexedFiles.response;
+    }
+    if (body.files.some((fileName) => !indexedFiles.files.has(fileName))) {
+        return jsonResponse({ error: "A requested file is not listed as a node file" }, 400);
+    }
+
+    const results = [];
+    for (const fileName of body.files) {
+        results.push(await deleteGitHubFile(fileName, env));
+    }
+    return jsonResponse({ results });
 }
 
 function isConfiguredHost(hostname, env) {
@@ -202,10 +370,13 @@ async function createSubscriptionLink(url, env) {
         console.error("Subscription signing key is missing or shorter than 32 bytes");
         return jsonResponse({ error: "Service is not configured" }, 503);
     }
-    if (!privateFiles.has(fileName)) {
+    const indexedFiles = await indexedRepositoryFiles(env);
+    if (!indexedFiles.files) {
+        return indexedFiles.response;
+    }
+    if (!indexedFiles.files.has(fileName)) {
         return jsonResponse({ error: "File not found" }, 404);
     }
-
     const signature = await signatureFor(fileName, env);
     const subscriptionUrl = new URL(`/sub/${encodeURIComponent(fileName)}`, url.origin);
     subscriptionUrl.searchParams.set("sig", signature);
@@ -228,19 +399,11 @@ async function serveSubscription(url, env) {
         return jsonResponse({ error: "Not found" }, 404);
     }
 
-    const content = privateFiles.get(fileName);
-    if (typeof content !== "string") {
-        return jsonResponse({ error: "Subscription file not found" }, 404);
+    const response = await fetchRepositoryFile(fileName, env);
+    if (response.ok) {
+        response.headers.set("Cache-Control", "private, no-store");
     }
-    return new Response(content, {
-        headers: {
-            "Content-Type": fileName.toLowerCase().endsWith(".yaml")
-                ? "application/yaml; charset=utf-8"
-                : "text/plain; charset=utf-8",
-            "Cache-Control": "private, no-store",
-            "X-Content-Type-Options": "nosniff",
-        },
-    });
+    return response;
 }
 
 function managerAssetPath(pathname) {
@@ -291,6 +454,22 @@ async function handleRequest(request, env) {
             return jsonResponse({ error: "Login required" }, 401);
         }
         return createSubscriptionLink(url, env);
+    }
+    if (url.pathname === "/api/files/delete") {
+        if (!(await isAuthenticated(request, env))) {
+            return jsonResponse({ error: "Login required" }, 401);
+        }
+        return handleDeleteFiles(request, env);
+    }
+
+    if (url.pathname === "/" || url.pathname === "/index.html") {
+        if (request.method !== "GET" && request.method !== "HEAD") {
+            return jsonResponse({ error: "Method not allowed" }, 405);
+        }
+        if (!(await isAuthenticated(request, env))) {
+            return env.ASSETS.fetch(new Request(new URL("/login.html", url), request));
+        }
+        return fetchRepositoryFile("index.html", env);
     }
 
     const assetPath = managerAssetPath(url.pathname);
