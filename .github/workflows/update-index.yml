@@ -2,7 +2,7 @@ name:  更新节点仓库主页
 
 # 工作流描述：此工作流用于自动生成和更新节点仓库的文件目录索引页面
 # 当代码库中的文件发生变化时，自动生成 index.html、update-index.html 和 files_info.json 文件
-# 这些文件用于构建 GitHub Pages 主页，展示仓库所有文件的目录结构
+# 这些文件用于构建管理页面，展示仓库中的节点文件索引
 
 on:
   # 1. 推送事件触发条件
@@ -19,7 +19,7 @@ on:
       - '!README.md'
       # 排除 .github 目录（防止无限循环触发）
       - '!.github/**'
-    # 仅对 main 分支生效
+    # 仅在 main 分支更新索引；此分支也用于 Cloudflare Workers 部署
     branches: [ main ]
 
   # 2. 定时任务：每天北京时间早上7点00自动运行（UTC时间晚上23:00）
@@ -80,7 +80,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # GitHub认证令牌
         REPO_OWNER: ${{ github.repository_owner }}  # 仓库所有者
         REPO_FULL_NAME: ${{ github.repository }}  # 仓库完整名称(owner/repo)，所有事件类型均可用
-        BRANCH: main  # 目标分支
+        BRANCH: ${{ github.ref_name }}  # 当前工作分支
       run: |
         echo "开始生成index.html文件..."
         # 从 "owner/repo" 格式提取仓库名称（schedule事件中 github.event.repository.name 不可用）
@@ -101,7 +101,7 @@ jobs:
         echo "生成的文件列表:"
         ls -la index.html update-index.html files_info.json 2>/dev/null || echo "部分文件未生成"
 
-    # 步骤5：提交生成的文件回主分支
+    # 步骤5：提交生成的文件回当前分支
     - name: 📤 提交并推送更新
       uses: stefanzweifel/git-auto-commit-action@v5
       with:
@@ -125,7 +125,7 @@ jobs:
           files_info.json
 
         # 目标分支
-        branch: main
+        branch: ${{ github.ref_name }}
 
         # 提交选项
         commit_user_name: 'GitHub Actions Bot'
@@ -157,8 +157,6 @@ jobs:
         echo "- update-index.html: 更新日志页面"
         echo "- files_info.json: 文件信息JSON数据"
         echo ""
-        echo "这些文件已自动提交到 main 分支"
+        echo "这些文件已自动提交到当前分支"
 
-# 工作流后续处理
-# 注意：此工作流运行后，如果仓库启用了 GitHub Pages，
-# 更新的 index.html 将自动部署为站点首页
+# 工作流生成的索引文件会由配置好的静态站点部署流程发布

@@ -9,6 +9,7 @@ import sys
 import json
 import subprocess
 from datetime import datetime, timezone, timedelta
+from html import escape
 from pathlib import Path
 from typing import List, Dict
 
@@ -24,6 +25,7 @@ except ImportError:
 # 配置信息
 REPO_OWNER = os.getenv("REPO_OWNER", "DaiZhouHui")
 REPO_NAME = os.getenv("REPO_NAME", "CustomNode")
+BRANCH = os.getenv("BRANCH", "main")
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 
 
@@ -200,33 +202,12 @@ def get_local_files() -> List[Dict]:
         update_date = update_time_utc8.strftime("%Y-%m-%d")
         update_time_only = update_time_utc8.strftime("%H:%M:%S")
 
-        # 生成链接
-        if node_info:
-            node_pages = (
-                f"https://{REPO_OWNER}.github.io/{REPO_NAME}/{node_info['name']}"
-            )
-            node_raw = f"https://raw.githubusercontent.com/{REPO_OWNER}/{REPO_NAME}/main/{node_info['name']}"
-        else:
-            node_pages = node_raw = None
-
-        if yaml_info:
-            yaml_pages = (
-                f"https://{REPO_OWNER}.github.io/{REPO_NAME}/{yaml_info['name']}"
-            )
-            yaml_raw = f"https://raw.githubusercontent.com/{REPO_OWNER}/{REPO_NAME}/main/{yaml_info['name']}"
-        else:
-            yaml_pages = yaml_raw = None
-
         files_info.append(
             {
                 "display_name": display_name,
                 "file_type": file_type,
                 "node_name": node_info["name"] if node_info else None,
                 "yaml_name": yaml_info["name"] if yaml_info else None,
-                "node_pages": node_pages,
-                "node_raw": node_raw,
-                "yaml_pages": yaml_pages,
-                "yaml_raw": yaml_raw,
                 "update_time": update_time_utc8,
                 "update_date": update_date,
                 "full_time": full_time_str,
@@ -1654,11 +1635,10 @@ body {{
                         <i class="fas fa-key"></i>
                         请输入 GitHub Token:
                     </label>
-                    <input type="password" id="githubToken" class="form-control" 
+                    <input type="password" id="githubToken" class="form-control"
                            placeholder="输入具有删除权限的GitHub令牌" autocomplete="off">
                     <p style="font-size: 12px; color: #94a3b8; margin-top: 5px;">
                         ⚠️ 此令牌仅用于本次删除操作，不会被保存
-                        <a href="#" class="token-link" onclick="copyGitToken(); return false;">复制查看示例令牌</a>
                     </p>
                 </div>
             </div>
@@ -1683,7 +1663,7 @@ body {{
 
     <script>
         // 文件数据
-        const allFiles = {json.dumps(files_info, default=str)};
+        const allFiles = {json.dumps(files_info, default=str).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")};
         
         // 删除相关变量
         let currentDeleteItems = [];
@@ -1731,6 +1711,31 @@ body {{
                     fallbackCopy(text, button);
                 }});
         }}
+
+        async function getSubscriptionUrl(fileName) {{
+            const response = await fetch(`/api/subscription-link?file=${{encodeURIComponent(fileName)}}`, {{
+                headers: {{ 'Accept': 'application/json' }},
+                credentials: 'same-origin'
+            }});
+            if (!response.ok) {{
+                throw new Error(`生成订阅链接失败（HTTP ${{response.status}}）`);
+            }}
+            const data = await response.json();
+            if (typeof data.url !== 'string') {{
+                throw new Error('订阅链接响应格式无效');
+            }}
+            return data.url;
+        }}
+
+        async function copySubscriptionLink(fileName, button = null) {{
+            try {{
+                const url = await getSubscriptionUrl(fileName);
+                copyToClipboard(url, button);
+            }} catch (error) {{
+                console.error('生成订阅链接失败:', error);
+                showToast(error.message || '生成订阅链接失败', 'error');
+            }}
+        }}
         
         // 降级复制方案
         function fallbackCopy(text, button = null) {{
@@ -1772,37 +1777,23 @@ body {{
             }}, 1500);
         }}
         
-        // 复制示例令牌
-        function copyGitToken() {{
-            const exampleToken = 'ghp_q914mARHjefJJ8XDKoNFauxzubjcjV0nlLt';
-            copyToClipboard(exampleToken);
-            showToast('示例令牌已复制到剪贴板', 'info');
-            
-            // 可选：将令牌填入输入框
-            const tokenInput = document.getElementById('githubToken');
-            if (tokenInput) {{
-                tokenInput.value = exampleToken;
-                tokenInput.focus();
-                tokenInput.select();
-            }}
-        }}
-        
         // 复制节点的所有链接
-        function copyNodeLinks(nodeName) {{
+        async function copyNodeLinks(nodeName) {{
             const file = allFiles.find(f => f.display_name === nodeName);
             if (!file) return;
             
-            const links = [];
-            if (file.node_pages) links.push(file.node_pages);
-            if (file.node_raw) links.push(file.node_raw);
-            if (file.yaml_pages) links.push(file.yaml_pages);
-            if (file.yaml_raw) links.push(file.yaml_raw);
-            
-            if (links.length > 0) {{
+            const names = [file.node_name, file.yaml_name].filter(Boolean);
+            if (names.length === 0) {{
+                showToast('没有可复制的链接', 'warning');
+                return;
+            }}
+            try {{
+                const links = await Promise.all(names.map(getSubscriptionUrl));
                 copyToClipboard(links.join('\\n'));
                 showToast(`已复制${{links.length}}个链接`);
-            }} else {{
-                showToast('没有可复制的链接', 'warning');
+            }} catch (error) {{
+                console.error('生成订阅链接失败:', error);
+                showToast(error.message || '生成订阅链接失败', 'error');
             }}
         }}
         
@@ -2022,7 +2013,7 @@ body {{
             const deleteData = {{
                 message: `Delete ${{fileName}} via CustomNode Manager`,
                 sha: sha,
-                branch: 'main',
+                branch: '{BRANCH}',
                 committer: {{
                     name: 'CustomNode Manager',
                     email: 'noreply@github.com'
@@ -2233,14 +2224,12 @@ def generate_table_row(file_info: Dict) -> str:
         <td><span class="status-badge {status_class}">{status_text}</span></td>
         <td>
             <div class="link-buttons">
-                {f"<button class='link-btn btn-raw' onclick=\"copyToClipboard('{file_info['node_pages']}', this)\" title='复制订阅链接-P'><i class='fas fa-globe'></i> 订阅链接-P</button>" if file_info['node_pages'] else "<span style='color:#94a3b8;font-size:13px;'>无节点文件</span>"}
-                {f"<button class='link-btn btn-raw' onclick=\"copyToClipboard('{file_info['node_raw']}', this)\" title='复制订阅链接-R'><i class='fas fa-code'></i> 订阅链接-R</button>" if file_info['node_raw'] else ""}
+                {f"<button class='link-btn btn-raw' data-file-name='{escape(file_info['node_name'], quote=True)}' onclick='copySubscriptionLink(this.dataset.fileName, this)' title='复制受保护的订阅链接'><i class='fas fa-lock'></i> 复制订阅链接</button>" if file_info['node_name'] else "<span style='color:#94a3b8;font-size:13px;'>无节点文件</span>"}
             </div>
         </td>
         <td>
             <div class="link-buttons">
-                {f"<button class='link-btn btn-pages' onclick=\"copyToClipboard('{file_info['yaml_pages']}', this)\" title='复制yaml订阅-P'><i class='fas fa-globe'></i> yaml订阅-P</button>" if file_info['yaml_pages'] else "<span style='color:#94a3b8;font-size:13px;'>无配置文件</span>"}
-                {f"<button class='link-btn btn-pages' onclick=\"copyToClipboard('{file_info['yaml_raw']}', this)\" title='复制yaml订阅-R'><i class='fas fa-code'></i> yaml订阅-R</button>" if file_info['yaml_raw'] else ""}
+                {f"<button class='link-btn btn-pages' data-file-name='{escape(file_info['yaml_name'], quote=True)}' onclick='copySubscriptionLink(this.dataset.fileName, this)' title='复制受保护的yaml订阅链接'><i class='fas fa-lock'></i> 复制yaml订阅</button>" if file_info['yaml_name'] else "<span style='color:#94a3b8;font-size:13px;'>无配置文件</span>"}
             </div>
         </td>
         <td>

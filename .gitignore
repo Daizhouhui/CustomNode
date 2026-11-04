@@ -5,6 +5,8 @@
 
 # 依赖目录
 node_modules/
+.wrangler/
+worker/public/
 __pycache__/
 *.py[cod]
 
