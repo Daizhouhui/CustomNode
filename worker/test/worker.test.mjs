@@ -187,6 +187,30 @@ test("does not issue signed links for files absent from the current repository i
     assert.equal(response.status, 404);
 });
 
+test("reports safe GitHub authorization diagnostics without exposing response bodies", async () => {
+    const cookie = await login();
+    for (const [status, message] of [
+        [401, /GITHUB_TOKEN.*401/],
+        [403, /repository access.*403.*Contents read permission/],
+    ]) {
+        const response = await withMockGitHub(async () =>
+            new Response("sensitive upstream response", { status }),
+        () =>
+            worker.fetch(
+                request("/", { headers: { Cookie: cookie } }),
+                {
+                    ...env,
+                    ASSETS: { fetch: async () => new Response("login") },
+                },
+            ),
+        );
+        assert.equal(response.status, 502);
+        const body = await response.json();
+        assert.match(body.error, message);
+        assert.equal(JSON.stringify(body).includes("sensitive upstream response"), false);
+    }
+});
+
 test("returns the current GitHub file content only for a valid signed URL", async () => {
     const cookie = await login();
     const linkResponse = await withMockGitHub(async () => githubIndex(), () =>

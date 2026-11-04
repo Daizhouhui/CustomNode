@@ -103,12 +103,18 @@ async function fetchRepositoryFile(fileName, env) {
         console.error("GitHub file request failed", error);
         return jsonResponse({ error: "Unable to reach repository" }, 502);
     }
-    if (response.status === 404) {
-        return jsonResponse({ error: "File not found" }, 404);
-    }
     if (!response.ok) {
         console.error("GitHub file read failed", response.status);
-        return jsonResponse({ error: "Unable to read repository file" }, 502);
+        if (response.status === 401) {
+            return jsonResponse({ error: "GitHub rejected GITHUB_TOKEN (401). Check that the Worker Secret contains a valid token." }, 502);
+        }
+        if (response.status === 403) {
+            return jsonResponse({ error: "GitHub denied repository access (403). Check the token's repository selection, Contents read permission, and organization SSO authorization." }, 502);
+        }
+        if (response.status === 404) {
+            return jsonResponse({ error: "GitHub could not find this file or the token cannot access the private repository (404)." }, 404);
+        }
+        return jsonResponse({ error: `GitHub repository request failed (HTTP ${response.status}).` }, 502);
     }
     return new Response(response.body, {
         headers: {
