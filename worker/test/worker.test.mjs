@@ -89,6 +89,7 @@ test("login page is public while manager assets are protected", async () => {
         const githubRequest = new URL(input);
         assert.match(githubRequest.pathname, /\/repos\/example\/nodes\/contents\/index\.html/);
         assert.equal(new Headers(options.headers).get("User-Agent"), "CustomNode-Worker");
+        assert.equal(new Headers(options.headers).get("Cache-Control"), "no-cache");
         assert.equal(new Headers(options.headers).get("Authorization"), `Bearer ${env.GITHUB_TOKEN}`);
         return new Response("<html>latest index</html>");
     }, async () => {

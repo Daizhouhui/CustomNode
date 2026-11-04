@@ -59,6 +59,7 @@ function githubHeaders(env, accept) {
         Authorization: `Bearer ${env.GITHUB_TOKEN}`,
         "User-Agent": "CustomNode-Worker",
         Accept: accept,
+        "Cache-Control": "no-cache",
         "X-GitHub-Api-Version": "2022-11-28",
     };
 }
