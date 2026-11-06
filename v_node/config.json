@@ -1,12 +1,12 @@
 {
     "vless_config": {
         "uuid": "99999999-9999-8999-9999-99abcdefabcd",
-        "domain": "s.kyma.dpdns.org",
+        "domain": "lin.kyma.dpdns.org",
         "port": 443,
-        "path": "/?ed=2048",
+        "path": "/knny96214?ed=2048",
         "encryption": "none",
         "security": "tls",
-        "sni": "s.kyma.dpdns.org",
+        "sni": "lin.kyma.dpdns.org",
         "fingerprint": "chrome",
         "network": "ws"
     },
