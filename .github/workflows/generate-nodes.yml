@@ -125,8 +125,11 @@ jobs:
             exit 0
           fi
           
+          # 节点数量（由 generate_nodes.py 写入 GITHUB_OUTPUT）
+          NODE_COUNT="${{ steps.generate_nodes.outputs.node_count }}"
+
           # 提交更改
-          git commit -m "自动更新CF优选域名及节点 [$(date +'%Y-%m-%d %H:%M:%S')]"
+          git commit -m "自动更新CF优选域名及节点 [$(date +'%Y-%m-%d %H:%M:%S')](${NODE_COUNT}节点)"
           git push
           echo "has_changes=true" >> $GITHUB_OUTPUT
           echo "✅ 节点文件已更新并推送"

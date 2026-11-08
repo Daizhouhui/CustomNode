@@ -516,6 +516,12 @@ def main():
             os.remove("YXNode")
         return False
     
+    # 将节点数量写入GitHub Actions输出，供workflow提交信息使用
+    github_output = os.environ.get('GITHUB_OUTPUT')
+    if github_output:
+        with open(github_output, 'a', encoding='utf-8') as f:
+            f.write(f"node_count={len(unique_nodes)}\n")
+
     print(f"\n✅ 文件生成成功:")
     print(f"   YXNode - {len(unique_nodes)} 个明文节点链接")
     print(f"   YXNode.yaml - Clash配置文件")
