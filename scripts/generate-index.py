@@ -7,6 +7,7 @@ CustomNode 仓库节点索引生成工具 - 优化版
 import os
 import sys
 import json
+import re
 import subprocess
 from datetime import datetime, timezone, timedelta
 from html import escape
@@ -69,6 +70,46 @@ def get_git_file_time(file_path: str) -> datetime:
             return datetime.now(timezone.utc)
 
 
+def get_git_commit_message(file_path: str) -> str:
+    """从Git历史获取文件最后一次提交的提交信息"""
+    try:
+        cmd = ["git", "log", "-1", "--format=%B", "--", file_path]
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            cwd=".",
+            timeout=5,
+        )
+
+        if result.returncode == 0:
+            return result.stdout.strip()
+        return ""
+    except Exception as e:
+        print(f"⚠️  获取git提交信息失败 {file_path}: {e}")
+        return ""
+
+
+def parse_node_count(commit_message: str):
+    """从提交信息中解析节点数量，例如: (245节点)、(1 个)、(20节点)"""
+    if not commit_message:
+        return None
+
+    # 优先匹配括号内的数量（兼容中英文括号、"节点"和"个"两种写法）
+    match = re.search(r"[(（](\d+)\s*(?:节点|个)[)）]", commit_message)
+    if match:
+        return int(match.group(1))
+
+    # 兜底：匹配不带括号的"N节点"
+    match = re.search(r"(\d+)\s*节点", commit_message)
+    if match:
+        return int(match.group(1))
+
+    return None
+
+
 def get_local_files() -> List[Dict]:
     """获取本地文件信息，并将节点与.yaml文件配对"""
     files_info = []
@@ -129,6 +170,7 @@ def get_local_files() -> List[Dict]:
                     "name": item_name,
                     "type": file_type,
                     "update_time": update_time,
+                    "node_count": parse_node_count(get_git_commit_message(item_name)),
                     "size": stat_info.st_size,
                 }
             )
@@ -202,9 +244,18 @@ def get_local_files() -> List[Dict]:
         update_date = update_time_utc8.strftime("%Y-%m-%d")
         update_time_only = update_time_utc8.strftime("%H:%M:%S")
 
+        # 节点数量：优先取节点文件提交信息中的数量，其次取yaml文件的
+        if node_info and node_info.get("node_count") is not None:
+            node_count = node_info["node_count"]
+        elif yaml_info and yaml_info.get("node_count") is not None:
+            node_count = yaml_info["node_count"]
+        else:
+            node_count = None
+
         files_info.append(
             {
                 "display_name": display_name,
+                "node_count": node_count,
                 "file_type": file_type,
                 "node_name": node_info["name"] if node_info else None,
                 "yaml_name": yaml_info["name"] if yaml_info else None,
@@ -653,16 +704,10 @@ body {{
     border: 1px solid rgba(16, 185, 129, 0.3);
 }}
 
-.status-node {{
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(130, 124, 229, 0.1));
-    color: var(--primary-dark);
-    border: 1px solid rgba(99, 102, 241, 0.3);
-}}
-
-.status-yaml {{
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.1));
-    color: var(--accent-dark);
-    border: 1px solid rgba(245, 158, 11, 0.3);
+.status-unpaired {{
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.1));
+    color: var(--danger-dark);
+    border: 1px solid rgba(239, 68, 68, 0.3);
 }}
 
 /* 链接按钮列 - 修复：桌面端横向排列（左右排列），移动端纵向排列 */
@@ -2132,19 +2177,23 @@ def generate_table_rows(grouped_files: Dict[str, List[Dict]]) -> str:
 
 def generate_table_row(file_info: Dict) -> str:
     """生成表格行"""
-    # 确定图标和状态
+    # 确定图标和状态（已配对=绿色，其余=红色；状态文字作为悬浮提示）
     if file_info["is_pair"]:
         icon = "fas fa-layer-group"
         status_class = "status-paired"
         status_text = "已配对"
     elif file_info["has_node"]:
         icon = "fas fa-file-alt"
-        status_class = "status-node"
+        status_class = "status-unpaired"
         status_text = "仅节点"
     else:
         icon = "fas fa-cog"
-        status_class = "status-yaml"
+        status_class = "status-unpaired"
         status_text = "仅配置"
+
+    # 状态列显示节点数量（从提交信息解析），解析不到时显示未知
+    node_count = file_info.get("node_count")
+    count_text = f"{node_count}节点" if node_count is not None else "未知"
 
     return f"""
     <tr>
@@ -2158,7 +2207,7 @@ def generate_table_row(file_info: Dict) -> str:
             </div>
         </td>
         <td class="node-time" title="{file_info['full_time']}">{file_info['update_date']}</td>
-        <td><span class="status-badge {status_class}">{status_text}</span></td>
+        <td><span class="status-badge {status_class}" title="{status_text}">{count_text}</span></td>
         <td>
             <div class="link-buttons">
                 {f"<button class='link-btn btn-raw' data-file-name='{escape(file_info['node_name'], quote=True)}' onclick='copySubscriptionLink(this.dataset.fileName, this)' title='复制受保护的订阅链接'><i class='fas fa-lock'></i> 复制订阅链接</button>" if file_info['node_name'] else "<span style='color:#94a3b8;font-size:13px;'>无节点文件</span>"}
