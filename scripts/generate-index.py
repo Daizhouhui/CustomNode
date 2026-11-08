@@ -704,10 +704,16 @@ body {{
     border: 1px solid rgba(16, 185, 129, 0.3);
 }}
 
-.status-unpaired {{
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.1));
-    color: var(--danger-dark);
-    border: 1px solid rgba(239, 68, 68, 0.3);
+.status-node {{
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(130, 124, 229, 0.1));
+    color: var(--primary-dark);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+}}
+
+.status-yaml {{
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.1));
+    color: var(--accent-dark);
+    border: 1px solid rgba(245, 158, 11, 0.3);
 }}
 
 /* 链接按钮列 - 修复：桌面端横向排列（左右排列），移动端纵向排列 */
@@ -2177,18 +2183,18 @@ def generate_table_rows(grouped_files: Dict[str, List[Dict]]) -> str:
 
 def generate_table_row(file_info: Dict) -> str:
     """生成表格行"""
-    # 确定图标和状态（已配对=绿色，其余=红色；状态文字作为悬浮提示）
+    # 确定图标和状态（状态文字作为悬浮提示）
     if file_info["is_pair"]:
         icon = "fas fa-layer-group"
         status_class = "status-paired"
         status_text = "已配对"
     elif file_info["has_node"]:
         icon = "fas fa-file-alt"
-        status_class = "status-unpaired"
+        status_class = "status-node"
         status_text = "仅节点"
     else:
         icon = "fas fa-cog"
-        status_class = "status-unpaired"
+        status_class = "status-yaml"
         status_text = "仅配置"
 
     # 状态列显示节点数量（从提交信息解析），解析不到时显示未知
