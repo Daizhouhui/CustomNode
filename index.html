@@ -380,16 +380,10 @@ body {
     border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
-.status-node {
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(130, 124, 229, 0.1));
-    color: var(--primary-dark);
-    border: 1px solid rgba(99, 102, 241, 0.3);
-}
-
-.status-yaml {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.1));
-    color: var(--accent-dark);
-    border: 1px solid rgba(245, 158, 11, 0.3);
+.status-unpaired {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.1));
+    color: var(--danger-dark);
+    border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 /* 链接按钮列 - 修复：桌面端横向排列（左右排列），移动端纵向排列 */
@@ -1335,8 +1329,8 @@ body {
                 YXNode
             </div>
         </td>
-        <td class="node-time" title="2026-11-08 09:30:11">2026-11-08</td>
-        <td><span class="status-badge status-paired">已配对</span></td>
+        <td class="node-time" title="2026-11-08 20:45:27">2026-11-08</td>
+        <td><span class="status-badge status-paired" title="已配对">34节点</span></td>
         <td>
             <div class="link-buttons">
                 <button class='link-btn btn-raw' data-file-name='YXNode' onclick='copySubscriptionLink(this.dataset.fileName, this)' title='复制受保护的订阅链接'><i class='fas fa-lock'></i> 复制订阅链接</button>
@@ -1382,7 +1376,7 @@ body {
             </div>
         </td>
         <td class="node-time" title="2026-11-04 19:26:05">2026-11-04</td>
-        <td><span class="status-badge status-paired">已配对</span></td>
+        <td><span class="status-badge status-paired" title="已配对">10节点</span></td>
         <td>
             <div class="link-buttons">
                 <button class='link-btn btn-raw' data-file-name='lixiang' onclick='copySubscriptionLink(this.dataset.fileName, this)' title='复制受保护的订阅链接'><i class='fas fa-lock'></i> 复制订阅链接</button>
@@ -1428,7 +1422,7 @@ body {
             </div>
         </td>
         <td class="node-time" title="2026-11-02 08:49:31">2026-11-02</td>
-        <td><span class="status-badge status-paired">已配对</span></td>
+        <td><span class="status-badge status-paired" title="已配对">60节点</span></td>
         <td>
             <div class="link-buttons">
                 <button class='link-btn btn-raw' data-file-name='fast' onclick='copySubscriptionLink(this.dataset.fileName, this)' title='复制受保护的订阅链接'><i class='fas fa-lock'></i> 复制订阅链接</button>
@@ -1464,7 +1458,7 @@ body {
             </div>
         </td>
         <td class="node-time" title="2026-11-02 08:34:27">2026-11-02</td>
-        <td><span class="status-badge status-paired">已配对</span></td>
+        <td><span class="status-badge status-paired" title="已配对">162节点</span></td>
         <td>
             <div class="link-buttons">
                 <button class='link-btn btn-raw' data-file-name='speed' onclick='copySubscriptionLink(this.dataset.fileName, this)' title='复制受保护的订阅链接'><i class='fas fa-lock'></i> 复制订阅链接</button>
@@ -1500,7 +1494,7 @@ body {
             </div>
         </td>
         <td class="node-time" title="2026-11-02 02:46:05">2026-11-02</td>
-        <td><span class="status-badge status-paired">已配对</span></td>
+        <td><span class="status-badge status-paired" title="已配对">17节点</span></td>
         <td>
             <div class="link-buttons">
                 <button class='link-btn btn-raw' data-file-name='US' onclick='copySubscriptionLink(this.dataset.fileName, this)' title='复制受保护的订阅链接'><i class='fas fa-lock'></i> 复制订阅链接</button>
@@ -1536,7 +1530,7 @@ body {
             </div>
         </td>
         <td class="node-time" title="2026-11-02 02:20:45">2026-11-02</td>
-        <td><span class="status-badge status-paired">已配对</span></td>
+        <td><span class="status-badge status-paired" title="已配对">27节点</span></td>
         <td>
             <div class="link-buttons">
                 <button class='link-btn btn-raw' data-file-name='Optimal' onclick='copySubscriptionLink(this.dataset.fileName, this)' title='复制受保护的订阅链接'><i class='fas fa-lock'></i> 复制订阅链接</button>
@@ -1582,7 +1576,7 @@ body {
             </div>
         </td>
         <td class="node-time" title="2026-11-01 13:40:32">2026-11-01</td>
-        <td><span class="status-badge status-paired">已配对</span></td>
+        <td><span class="status-badge status-paired" title="已配对">9节点</span></td>
         <td>
             <div class="link-buttons">
                 <button class='link-btn btn-raw' data-file-name='su' onclick='copySubscriptionLink(this.dataset.fileName, this)' title='复制受保护的订阅链接'><i class='fas fa-lock'></i> 复制订阅链接</button>
@@ -1618,7 +1612,7 @@ body {
             </div>
         </td>
         <td class="node-time" title="2026-11-01 02:36:42">2026-11-01</td>
-        <td><span class="status-badge status-paired">已配对</span></td>
+        <td><span class="status-badge status-paired" title="已配对">92节点</span></td>
         <td>
             <div class="link-buttons">
                 <button class='link-btn btn-raw' data-file-name='Main' onclick='copySubscriptionLink(this.dataset.fileName, this)' title='复制受保护的订阅链接'><i class='fas fa-lock'></i> 复制订阅链接</button>
@@ -1664,7 +1658,7 @@ body {
             </div>
         </td>
         <td class="node-time" title="2026-10-31 10:51:21">2026-10-31</td>
-        <td><span class="status-badge status-paired">已配对</span></td>
+        <td><span class="status-badge status-paired" title="已配对">245节点</span></td>
         <td>
             <div class="link-buttons">
                 <button class='link-btn btn-raw' data-file-name='soren' onclick='copySubscriptionLink(this.dataset.fileName, this)' title='复制受保护的订阅链接'><i class='fas fa-lock'></i> 复制订阅链接</button>
@@ -1710,7 +1704,7 @@ body {
             </div>
         </td>
         <td class="node-time" title="2026-10-30 23:18:29">2026-10-30</td>
-        <td><span class="status-badge status-paired">已配对</span></td>
+        <td><span class="status-badge status-paired" title="已配对">259节点</span></td>
         <td>
             <div class="link-buttons">
                 <button class='link-btn btn-raw' data-file-name='HK' onclick='copySubscriptionLink(this.dataset.fileName, this)' title='复制受保护的订阅链接'><i class='fas fa-lock'></i> 复制订阅链接</button>
@@ -1746,7 +1740,7 @@ body {
             </div>
         </td>
         <td class="node-time" title="2026-10-30 20:59:24">2026-10-30</td>
-        <td><span class="status-badge status-paired">已配对</span></td>
+        <td><span class="status-badge status-paired" title="已配对">245节点</span></td>
         <td>
             <div class="link-buttons">
                 <button class='link-btn btn-raw' data-file-name='nice' onclick='copySubscriptionLink(this.dataset.fileName, this)' title='复制受保护的订阅链接'><i class='fas fa-lock'></i> 复制订阅链接</button>
@@ -1782,7 +1776,7 @@ body {
             </div>
         </td>
         <td class="node-time" title="2026-10-30 20:55:37">2026-10-30</td>
-        <td><span class="status-badge status-paired">已配对</span></td>
+        <td><span class="status-badge status-paired" title="已配对">232节点</span></td>
         <td>
             <div class="link-buttons">
                 <button class='link-btn btn-raw' data-file-name='东亚' onclick='copySubscriptionLink(this.dataset.fileName, this)' title='复制受保护的订阅链接'><i class='fas fa-lock'></i> 复制订阅链接</button>
@@ -1818,7 +1812,7 @@ body {
             </div>
         </td>
         <td class="node-time" title="2026-10-30 18:59:09">2026-10-30</td>
-        <td><span class="status-badge status-paired">已配对</span></td>
+        <td><span class="status-badge status-paired" title="已配对">122节点</span></td>
         <td>
             <div class="link-buttons">
                 <button class='link-btn btn-raw' data-file-name='CA' onclick='copySubscriptionLink(this.dataset.fileName, this)' title='复制受保护的订阅链接'><i class='fas fa-lock'></i> 复制订阅链接</button>
@@ -1854,7 +1848,7 @@ body {
             </div>
         </td>
         <td class="node-time" title="2026-10-30 18:58:14">2026-10-30</td>
-        <td><span class="status-badge status-paired">已配对</span></td>
+        <td><span class="status-badge status-paired" title="已配对">213节点</span></td>
         <td>
             <div class="link-buttons">
                 <button class='link-btn btn-raw' data-file-name='YX' onclick='copySubscriptionLink(this.dataset.fileName, this)' title='复制受保护的订阅链接'><i class='fas fa-lock'></i> 复制订阅链接</button>
@@ -1890,7 +1884,7 @@ body {
             </div>
         </td>
         <td class="node-time" title="2026-10-30 18:57:32">2026-10-30</td>
-        <td><span class="status-badge status-paired">已配对</span></td>
+        <td><span class="status-badge status-paired" title="已配对">343节点</span></td>
         <td>
             <div class="link-buttons">
                 <button class='link-btn btn-raw' data-file-name='欧洲' onclick='copySubscriptionLink(this.dataset.fileName, this)' title='复制受保护的订阅链接'><i class='fas fa-lock'></i> 复制订阅链接</button>
@@ -1926,7 +1920,7 @@ body {
             </div>
         </td>
         <td class="node-time" title="2026-10-30 17:57:21">2026-10-30</td>
-        <td><span class="status-badge status-paired">已配对</span></td>
+        <td><span class="status-badge status-paired" title="已配对">68节点</span></td>
         <td>
             <div class="link-buttons">
                 <button class='link-btn btn-raw' data-file-name='东南亚' onclick='copySubscriptionLink(this.dataset.fileName, this)' title='复制受保护的订阅链接'><i class='fas fa-lock'></i> 复制订阅链接</button>
@@ -1962,7 +1956,7 @@ body {
         <div class="footer-info">
             <div class="footer-left">
                 <span>共 16 个节点模组</span>
-                <span>最后更新: 2026-11-08 20:43:47 (UTC+8)</span>
+                <span>最后更新: 2026-11-08 21:17:29 (UTC+8)</span>
             </div>
             <div class="footer-right">
                 <a href="https://github.com/Daizhouhui/CustomNode" target="_blank" class="footer-link">
@@ -2015,7 +2009,7 @@ body {
 
     <script>
         // 文件数据
-        const allFiles = [{"display_name": "YXNode", "file_type": "node", "node_name": "YXNode", "yaml_name": "YXNode.yaml", "update_time": "2026-11-08 09:30:11+08:00", "update_date": "2026-11-08", "full_time": "2026-11-08 09:30:11", "update_time_only": "09:30:11", "node_size": 8958, "yaml_size": 17690, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "lixiang", "file_type": "node", "node_name": "lixiang", "yaml_name": "lixiang.yaml", "update_time": "2026-11-04 19:26:05+08:00", "update_date": "2026-11-04", "full_time": "2026-11-04 19:26:05", "update_time_only": "19:26:05", "node_size": 3652, "yaml_size": 6072, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "fast", "file_type": "node", "node_name": "fast", "yaml_name": "fast.yaml", "update_time": "2026-11-02 08:49:31+08:00", "update_date": "2026-11-02", "full_time": "2026-11-02 08:49:31", "update_time_only": "08:49:31", "node_size": 19824, "yaml_size": 31304, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "speed", "file_type": "node", "node_name": "speed", "yaml_name": "speed.yaml", "update_time": "2026-11-02 08:34:27+08:00", "update_date": "2026-11-02", "full_time": "2026-11-02 08:34:27", "update_time_only": "08:34:27", "node_size": 58900, "yaml_size": 82188, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "US", "file_type": "node", "node_name": "US", "yaml_name": "US.yaml", "update_time": "2026-11-02 02:46:05+08:00", "update_date": "2026-11-02", "full_time": "2026-11-02 02:46:05", "update_time_only": "02:46:05", "node_size": 5756, "yaml_size": 9525, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "Optimal", "file_type": "node", "node_name": "Optimal", "yaml_name": "Optimal.yaml", "update_time": "2026-11-02 02:20:45+08:00", "update_date": "2026-11-02", "full_time": "2026-11-02 02:20:45", "update_time_only": "02:20:45", "node_size": 32836, "yaml_size": 50350, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "su", "file_type": "node", "node_name": "su", "yaml_name": "su.yaml", "update_time": "2026-11-01 13:40:32+08:00", "update_date": "2026-11-01", "full_time": "2026-11-01 13:40:32", "update_time_only": "13:40:32", "node_size": 3216, "yaml_size": 5466, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "Main", "file_type": "node", "node_name": "Main", "yaml_name": "Main.yaml", "update_time": "2026-11-01 02:36:42+08:00", "update_date": "2026-11-01", "full_time": "2026-11-01 02:36:42", "update_time_only": "02:36:42", "node_size": 28928, "yaml_size": 44278, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "soren", "file_type": "node", "node_name": "soren", "yaml_name": "soren.yaml", "update_time": "2026-10-31 10:51:21+08:00", "update_date": "2026-10-31", "full_time": "2026-10-31 10:51:21", "update_time_only": "10:51:21", "node_size": 76728, "yaml_size": 115829, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "HK", "file_type": "node", "node_name": "HK", "yaml_name": "HK.yaml", "update_time": "2026-10-30 23:18:29+08:00", "update_date": "2026-10-30", "full_time": "2026-10-30 23:18:29", "update_time_only": "23:18:29", "node_size": 77852, "yaml_size": 119414, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "nice", "file_type": "node", "node_name": "nice", "yaml_name": "nice.yaml", "update_time": "2026-10-30 20:59:24+08:00", "update_date": "2026-10-30", "full_time": "2026-10-30 20:59:24", "update_time_only": "20:59:24", "node_size": 75096, "yaml_size": 114604, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "\u4e1c\u4e9a", "file_type": "node", "node_name": "\u4e1c\u4e9a", "yaml_name": "\u4e1c\u4e9a.yaml", "update_time": "2026-10-30 20:55:37+08:00", "update_date": "2026-10-30", "full_time": "2026-10-30 20:55:37", "update_time_only": "20:55:37", "node_size": 73420, "yaml_size": 111078, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "CA", "file_type": "node", "node_name": "CA", "yaml_name": "CA.yaml", "update_time": "2026-10-30 18:59:09+08:00", "update_date": "2026-10-30", "full_time": "2026-10-30 18:59:09", "update_time_only": "18:59:09", "node_size": 42136, "yaml_size": 62368, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "YX", "file_type": "node", "node_name": "YX", "yaml_name": "YX.yaml", "update_time": "2026-10-30 18:58:14+08:00", "update_date": "2026-10-30", "full_time": "2026-10-30 18:58:14", "update_time_only": "18:58:14", "node_size": 68004, "yaml_size": 100841, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "\u6b27\u6d32", "file_type": "node", "node_name": "\u6b27\u6d32", "yaml_name": "\u6b27\u6d32.yaml", "update_time": "2026-10-30 18:57:32+08:00", "update_date": "2026-10-30", "full_time": "2026-10-30 18:57:32", "update_time_only": "18:57:32", "node_size": 121472, "yaml_size": 175872, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "\u4e1c\u5357\u4e9a", "file_type": "node", "node_name": "\u4e1c\u5357\u4e9a", "yaml_name": "\u4e1c\u5357\u4e9a.yaml", "update_time": "2026-10-30 17:57:21+08:00", "update_date": "2026-10-30", "full_time": "2026-10-30 17:57:21", "update_time_only": "17:57:21", "node_size": 23820, "yaml_size": 35370, "has_node": true, "has_yaml": true, "is_pair": true}];
+        const allFiles = [{"display_name": "YXNode", "node_count": 34, "file_type": "node", "node_name": "YXNode", "yaml_name": "YXNode.yaml", "update_time": "2026-11-08 20:45:27+08:00", "update_date": "2026-11-08", "full_time": "2026-11-08 20:45:27", "update_time_only": "20:45:27", "node_size": 8234, "yaml_size": 16446, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "lixiang", "node_count": 10, "file_type": "node", "node_name": "lixiang", "yaml_name": "lixiang.yaml", "update_time": "2026-11-04 19:26:05+08:00", "update_date": "2026-11-04", "full_time": "2026-11-04 19:26:05", "update_time_only": "19:26:05", "node_size": 3652, "yaml_size": 6072, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "fast", "node_count": 60, "file_type": "node", "node_name": "fast", "yaml_name": "fast.yaml", "update_time": "2026-11-02 08:49:31+08:00", "update_date": "2026-11-02", "full_time": "2026-11-02 08:49:31", "update_time_only": "08:49:31", "node_size": 19824, "yaml_size": 31304, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "speed", "node_count": 162, "file_type": "node", "node_name": "speed", "yaml_name": "speed.yaml", "update_time": "2026-11-02 08:34:27+08:00", "update_date": "2026-11-02", "full_time": "2026-11-02 08:34:27", "update_time_only": "08:34:27", "node_size": 58900, "yaml_size": 82188, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "US", "node_count": 17, "file_type": "node", "node_name": "US", "yaml_name": "US.yaml", "update_time": "2026-11-02 02:46:05+08:00", "update_date": "2026-11-02", "full_time": "2026-11-02 02:46:05", "update_time_only": "02:46:05", "node_size": 5756, "yaml_size": 9525, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "Optimal", "node_count": 27, "file_type": "node", "node_name": "Optimal", "yaml_name": "Optimal.yaml", "update_time": "2026-11-02 02:20:45+08:00", "update_date": "2026-11-02", "full_time": "2026-11-02 02:20:45", "update_time_only": "02:20:45", "node_size": 32836, "yaml_size": 50350, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "su", "node_count": 9, "file_type": "node", "node_name": "su", "yaml_name": "su.yaml", "update_time": "2026-11-01 13:40:32+08:00", "update_date": "2026-11-01", "full_time": "2026-11-01 13:40:32", "update_time_only": "13:40:32", "node_size": 3216, "yaml_size": 5466, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "Main", "node_count": 92, "file_type": "node", "node_name": "Main", "yaml_name": "Main.yaml", "update_time": "2026-11-01 02:36:42+08:00", "update_date": "2026-11-01", "full_time": "2026-11-01 02:36:42", "update_time_only": "02:36:42", "node_size": 28928, "yaml_size": 44278, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "soren", "node_count": 245, "file_type": "node", "node_name": "soren", "yaml_name": "soren.yaml", "update_time": "2026-10-31 10:51:21+08:00", "update_date": "2026-10-31", "full_time": "2026-10-31 10:51:21", "update_time_only": "10:51:21", "node_size": 76728, "yaml_size": 115829, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "HK", "node_count": 259, "file_type": "node", "node_name": "HK", "yaml_name": "HK.yaml", "update_time": "2026-10-30 23:18:29+08:00", "update_date": "2026-10-30", "full_time": "2026-10-30 23:18:29", "update_time_only": "23:18:29", "node_size": 77852, "yaml_size": 119414, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "nice", "node_count": 245, "file_type": "node", "node_name": "nice", "yaml_name": "nice.yaml", "update_time": "2026-10-30 20:59:24+08:00", "update_date": "2026-10-30", "full_time": "2026-10-30 20:59:24", "update_time_only": "20:59:24", "node_size": 75096, "yaml_size": 114604, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "\u4e1c\u4e9a", "node_count": 232, "file_type": "node", "node_name": "\u4e1c\u4e9a", "yaml_name": "\u4e1c\u4e9a.yaml", "update_time": "2026-10-30 20:55:37+08:00", "update_date": "2026-10-30", "full_time": "2026-10-30 20:55:37", "update_time_only": "20:55:37", "node_size": 73420, "yaml_size": 111078, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "CA", "node_count": 122, "file_type": "node", "node_name": "CA", "yaml_name": "CA.yaml", "update_time": "2026-10-30 18:59:09+08:00", "update_date": "2026-10-30", "full_time": "2026-10-30 18:59:09", "update_time_only": "18:59:09", "node_size": 42136, "yaml_size": 62368, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "YX", "node_count": 213, "file_type": "node", "node_name": "YX", "yaml_name": "YX.yaml", "update_time": "2026-10-30 18:58:14+08:00", "update_date": "2026-10-30", "full_time": "2026-10-30 18:58:14", "update_time_only": "18:58:14", "node_size": 68004, "yaml_size": 100841, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "\u6b27\u6d32", "node_count": 343, "file_type": "node", "node_name": "\u6b27\u6d32", "yaml_name": "\u6b27\u6d32.yaml", "update_time": "2026-10-30 18:57:32+08:00", "update_date": "2026-10-30", "full_time": "2026-10-30 18:57:32", "update_time_only": "18:57:32", "node_size": 121472, "yaml_size": 175872, "has_node": true, "has_yaml": true, "is_pair": true}, {"display_name": "\u4e1c\u5357\u4e9a", "node_count": 68, "file_type": "node", "node_name": "\u4e1c\u5357\u4e9a", "yaml_name": "\u4e1c\u5357\u4e9a.yaml", "update_time": "2026-10-30 17:57:21+08:00", "update_date": "2026-10-30", "full_time": "2026-10-30 17:57:21", "update_time_only": "17:57:21", "node_size": 23820, "yaml_size": 35370, "has_node": true, "has_yaml": true, "is_pair": true}];
         
         // 删除相关变量
         let currentDeleteItems = [];
