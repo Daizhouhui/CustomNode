@@ -1,0 +1,2 @@
+vless://99999999-9999-8999-9999-99abcdefabcd@162.159.23.13:443?encryption=none&security=tls&sni=lin.kyma.dpdns.org&fp=chrome&type=ws&host=lin.kyma.dpdns.org&path=%2F%3Fed%3D2048#%E6%96%B0%E5%8A%A0%E5%9D%A1-35.43MB%2Fs-443-162.159.23.13
+vless://99999999-9999-8999-9999-99abcdefabcd@104.17.162.35:443?encryption=none&security=tls&sni=lin.kyma.dpdns.org&fp=chrome&type=ws&host=lin.kyma.dpdns.org&path=%2F%3Fed%3D2048#%E6%B4%9B%E6%9D%89%E7%9F%B6-14.33MB%2Fs-443-104.17.162.35
