@@ -1051,6 +1051,7 @@ body {{
     gap: 12px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
     z-index: 1000;
+    pointer-events: none;
     opacity: 0;
     transform: translateY(-20px);
     transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
