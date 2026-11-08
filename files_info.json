@@ -1,52 +1,40 @@
 {
   "files": [
     {
-      "display_name": "xh",
-      "file_type": "node",
-      "node_name": "xh",
-      "yaml_name": "xh.yaml",
-      "update_time": "2026-11-04 13:00:19+08:00",
-      "update_date": "2026-11-04",
-      "full_time": "2026-11-04 13:00:19",
-      "update_time_only": "13:00:19",
-      "node_size": 19588,
-      "yaml_size": 31975,
-      "has_node": true,
-      "has_yaml": true,
-      "is_pair": true
-    },
-    {
-      "display_name": "sub888",
-      "file_type": "node",
-      "node_name": "sub888",
-      "yaml_name": "sub888.yaml",
-      "update_time": "2026-11-04 12:29:39+08:00",
-      "update_date": "2026-11-04",
-      "full_time": "2026-11-04 12:29:39",
-      "update_time_only": "12:29:39",
-      "node_size": 9136,
-      "yaml_size": 6347,
-      "has_node": true,
-      "has_yaml": true,
-      "is_pair": true
-    },
-    {
       "display_name": "YXNode",
+      "node_count": 34,
       "file_type": "node",
       "node_name": "YXNode",
       "yaml_name": "YXNode.yaml",
-      "update_time": "2026-11-04 10:26:09+08:00",
+      "update_time": "2026-11-08 20:45:27+08:00",
+      "update_date": "2026-11-08",
+      "full_time": "2026-11-08 20:45:27",
+      "update_time_only": "20:45:27",
+      "node_size": 8268,
+      "yaml_size": 17122,
+      "has_node": true,
+      "has_yaml": true,
+      "is_pair": true
+    },
+    {
+      "display_name": "lixiang",
+      "node_count": 10,
+      "file_type": "node",
+      "node_name": "lixiang",
+      "yaml_name": "lixiang.yaml",
+      "update_time": "2026-11-04 19:26:05+08:00",
       "update_date": "2026-11-04",
-      "full_time": "2026-11-04 10:26:09",
-      "update_time_only": "10:26:09",
-      "node_size": 8536,
-      "yaml_size": 17980,
+      "full_time": "2026-11-04 19:26:05",
+      "update_time_only": "19:26:05",
+      "node_size": 3652,
+      "yaml_size": 6293,
       "has_node": true,
       "has_yaml": true,
       "is_pair": true
     },
     {
       "display_name": "fast",
+      "node_count": 60,
       "file_type": "node",
       "node_name": "fast",
       "yaml_name": "fast.yaml",
@@ -62,6 +50,7 @@
     },
     {
       "display_name": "speed",
+      "node_count": 162,
       "file_type": "node",
       "node_name": "speed",
       "yaml_name": "speed.yaml",
@@ -77,6 +66,7 @@
     },
     {
       "display_name": "US",
+      "node_count": 17,
       "file_type": "node",
       "node_name": "US",
       "yaml_name": "US.yaml",
@@ -92,6 +82,7 @@
     },
     {
       "display_name": "Optimal",
+      "node_count": 27,
       "file_type": "node",
       "node_name": "Optimal",
       "yaml_name": "Optimal.yaml",
@@ -107,6 +98,7 @@
     },
     {
       "display_name": "su",
+      "node_count": 9,
       "file_type": "node",
       "node_name": "su",
       "yaml_name": "su.yaml",
@@ -122,6 +114,7 @@
     },
     {
       "display_name": "Main",
+      "node_count": 92,
       "file_type": "node",
       "node_name": "Main",
       "yaml_name": "Main.yaml",
@@ -137,6 +130,7 @@
     },
     {
       "display_name": "soren",
+      "node_count": 245,
       "file_type": "node",
       "node_name": "soren",
       "yaml_name": "soren.yaml",
@@ -152,6 +146,7 @@
     },
     {
       "display_name": "HK",
+      "node_count": 259,
       "file_type": "node",
       "node_name": "HK",
       "yaml_name": "HK.yaml",
@@ -167,6 +162,7 @@
     },
     {
       "display_name": "nice",
+      "node_count": 245,
       "file_type": "node",
       "node_name": "nice",
       "yaml_name": "nice.yaml",
@@ -182,6 +178,7 @@
     },
     {
       "display_name": "\u4e1c\u4e9a",
+      "node_count": 232,
       "file_type": "node",
       "node_name": "\u4e1c\u4e9a",
       "yaml_name": "\u4e1c\u4e9a.yaml",
@@ -197,6 +194,7 @@
     },
     {
       "display_name": "CA",
+      "node_count": 122,
       "file_type": "node",
       "node_name": "CA",
       "yaml_name": "CA.yaml",
@@ -212,6 +210,7 @@
     },
     {
       "display_name": "YX",
+      "node_count": 213,
       "file_type": "node",
       "node_name": "YX",
       "yaml_name": "YX.yaml",
@@ -227,6 +226,7 @@
     },
     {
       "display_name": "\u6b27\u6d32",
+      "node_count": 343,
       "file_type": "node",
       "node_name": "\u6b27\u6d32",
       "yaml_name": "\u6b27\u6d32.yaml",
@@ -242,6 +242,7 @@
     },
     {
       "display_name": "\u4e1c\u5357\u4e9a",
+      "node_count": 68,
       "file_type": "node",
       "node_name": "\u4e1c\u5357\u4e9a",
       "yaml_name": "\u4e1c\u5357\u4e9a.yaml",
@@ -254,23 +255,8 @@
       "has_node": true,
       "has_yaml": true,
       "is_pair": true
-    },
-    {
-      "display_name": "OptimalNode",
-      "file_type": "yaml",
-      "node_name": null,
-      "yaml_name": "OptimalNode.yaml",
-      "update_time": "2026-10-17 00:03:54+08:00",
-      "update_date": "2026-10-17",
-      "full_time": "2026-10-17 00:03:54",
-      "update_time_only": "00:03:54",
-      "node_size": 0,
-      "yaml_size": 51981,
-      "has_node": false,
-      "has_yaml": true,
-      "is_pair": false
     }
   ],
-  "generated_at": "2026-11-04T07:54:25.918030+00:00",
+  "generated_at": "2026-11-08T13:48:05.644469+00:00",
   "repo": "DaiZhouHui/CustomNode"
 }
