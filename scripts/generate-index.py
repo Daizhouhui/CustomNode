@@ -1614,7 +1614,7 @@ body {{
                         <i class="fas fa-cubes"></i>
                         <span>生成节点</span>
                     </button>
-                    <button class="btn btn-outline" onclick="window.location.href = 'update-index.html'">
+                    <button class="btn btn-outline" onclick="window.location.href = '/update-index'">
                         <i class="fas fa-sync-alt"></i>
                         <span>更新</span>
                     </button>
@@ -1661,7 +1661,7 @@ body {{
                     <i class="fas fa-plus-circle"></i>
                     <span>生成节点</span>
                 </a>
-                <a href="update-index.html" class="footer-link">
+                <a href="/update-index" class="footer-link">
                     <i class="fas fa-sync-alt"></i>
                     <span>手动更新</span>
                 </a>
@@ -2250,7 +2250,7 @@ def generate_update_page(repo_owner: str, repo_name: str) -> str:
         const REPO_OWNER = "{{REPO_OWNER}}";
         const REPO_NAME = "{{REPO_NAME}}";
     </script>
-    <title>CustomNode 更新控制台</title>
+    <title>节点仓库主页控制台</title>
     <style>
         :root {
             --primary: #6366f1;
@@ -2436,6 +2436,17 @@ def generate_update_page(repo_owner: str, repo_name: str) -> str:
             opacity: 0.65;
             cursor: not-allowed;
         }
+
+        .trigger-message {
+            margin-top: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            min-height: 20px;
+            color: var(--gray);
+        }
+
+        .trigger-message.success { color: var(--secondary-dark); }
+        .trigger-message.error { color: var(--danger); }
 
         /* 运行状态 */
         .refresh-btn {
@@ -2686,8 +2697,8 @@ def generate_update_page(repo_owner: str, repo_name: str) -> str:
     <div class="update-container">
         <!-- 头部 -->
         <div class="update-header">
-            <h1><i class="fas fa-sync-alt"></i> CustomNode 更新控制台</h1>
-            <a href="index.html" class="back-btn">
+            <h1><i class="fas fa-sync-alt"></i> 节点仓库主页控制台</h1>
+            <a href="/" class="back-btn">
                 <i class="fas fa-arrow-left"></i>
                 返回主页面
             </a>
@@ -2703,24 +2714,15 @@ def generate_update_page(repo_owner: str, repo_name: str) -> str:
                 <p class="card-desc">
                     触发 update-index 工作流：重新扫描仓库节点文件，重建索引页 index.html 与文件清单 files_info.json。
                 </p>
-                <label class="field-label" for="githubToken">GitHub Token（需 repo 权限）</label>
-                <input
-                    id="githubToken"
-                    type="password"
-                    class="token-input"
-                    placeholder="ghp_..."
-                    autocomplete="off"
-                    spellcheck="false"
-                    onkeydown="if (event.key === 'Enter') triggerUpdate()"
-                >
                 <p class="hint">
-                    <i class="fas fa-lock"></i>
-                    令牌仅在本页使用，浏览器不会保存
+                    <i class="fas fa-shield-alt"></i>
+                    使用 Worker 服务端令牌触发，无需在本页输入 GitHub Token
                 </p>
                 <button class="trigger-btn" id="triggerBtn" onclick="triggerUpdate()">
                     <i class="fas fa-bolt"></i>
                     立即更新
                 </button>
+                <p class="trigger-message" id="triggerMessage" role="status"></p>
             </div>
 
             <!-- 运行状态 -->
@@ -2777,7 +2779,8 @@ def generate_update_page(repo_owner: str, repo_name: str) -> str:
 
     <script>
         const WORKFLOW_FILE = "update-index.yml";
-        const API_BASE = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}`;
+        const WORKER_RUNS_URL = "/api/workflow-runs";
+        const WORKER_TRIGGER_URL = "/api/trigger-update";
         const EVENT_LABELS = { schedule: "定时", push: "推送", workflow_dispatch: "手动" };
 
         let latestRunId = null;     // 已知的最新一次运行ID，用于识别新触发的运行
@@ -2801,12 +2804,31 @@ def generate_update_page(repo_owner: str, repo_name: str) -> str:
             output.scrollTop = 0;
         }
 
-        async function fetchJSON(url, options) {
-            const response = await fetch(url, options);
+        async function fetchJSON(url, options = {}) {
+            const response = await fetch(url, { credentials: "same-origin", ...options });
+            if (response.status === 401) {
+                throw new Error("登录已过期，请刷新页面重新登录");
+            }
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
+                let message = `HTTP ${response.status}`;
+                try {
+                    const body = await response.json();
+                    if (body && typeof body.error === "string") {
+                        message = body.error;
+                    }
+                } catch {
+                    // 无法解析错误体时保留 HTTP 状态码
+                }
+                throw new Error(message);
             }
             return response.json();
+        }
+
+        // 按钮下方的即时反馈
+        function showTriggerMessage(text, type = "info") {
+            const element = document.getElementById("triggerMessage");
+            element.textContent = text;
+            element.className = `trigger-message ${type}`;
         }
 
         // 运行耗时，如 "1分12秒"
@@ -2843,8 +2865,8 @@ def generate_update_page(repo_owner: str, repo_name: str) -> str:
             item.target = "_blank";
             item.rel = "noopener";
 
-            if (run.head_commit && run.head_commit.message) {
-                item.title = run.head_commit.message.split("\n")[0];
+            if (run.head_commit_message) {
+                item.title = run.head_commit_message;
             }
 
             const stateSpan = document.createElement("span");
@@ -2876,7 +2898,7 @@ def generate_update_page(repo_owner: str, repo_name: str) -> str:
         async function loadStatus(manual = false) {
             const container = document.getElementById("runsContainer");
             try {
-                const data = await fetchJSON(`${API_BASE}/actions/workflows/${WORKFLOW_FILE}/runs?per_page=5`);
+                const data = await fetchJSON(WORKER_RUNS_URL);
                 const runs = (data.workflow_runs || []).slice(0, 5);
 
                 container.innerHTML = "";
@@ -2900,7 +2922,7 @@ def generate_update_page(repo_owner: str, repo_name: str) -> str:
                 container.innerHTML = "";
                 const tip = document.createElement("div");
                 tip.className = "status-error";
-                tip.textContent = `无法获取运行记录（${error.message}；仓库私有或超出 API 速率限制时会出现）`;
+                tip.textContent = `无法获取运行记录：${error.message}`;
                 container.appendChild(tip);
                 if (manual) {
                     addLog(`刷新运行状态失败: ${error.message}`, "error");
@@ -2923,7 +2945,7 @@ def generate_update_page(repo_owner: str, repo_name: str) -> str:
                     return;
                 }
                 try {
-                    const run = await fetchJSON(`${API_BASE}/actions/runs/${runId}`);
+                    const run = await fetchJSON(`${WORKER_RUNS_URL}/${runId}`);
                     if (run.status === "completed") {
                         clearInterval(timer);
                         trackingActive = false;
@@ -2956,7 +2978,7 @@ def generate_update_page(repo_owner: str, repo_name: str) -> str:
                     return;
                 }
                 try {
-                    const data = await fetchJSON(`${API_BASE}/actions/workflows/${WORKFLOW_FILE}/runs?per_page=1`);
+                    const data = await fetchJSON(WORKER_RUNS_URL);
                     const top = (data.workflow_runs || [])[0];
                     if (top && top.id !== baselineId) {
                         clearInterval(timer);
@@ -2971,43 +2993,28 @@ def generate_update_page(repo_owner: str, repo_name: str) -> str:
             }, 15000);
         }
 
-        // 触发更新工作流（唯一的更新入口）
+        // 触发更新工作流（唯一入口，使用 Worker 服务端令牌）
         async function triggerUpdate() {
             const button = document.getElementById("triggerBtn");
-            const tokenInput = document.getElementById("githubToken");
-            const token = tokenInput.value.trim();
-
-            if (!token) {
-                addLog("请先输入 GitHub Token（需 repo 权限）", "warning");
-                tokenInput.focus();
-                return;
-            }
-
             const originalContent = button.innerHTML;
+
             button.disabled = true;
             button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在触发...';
+            showTriggerMessage("正在触发 update-index 工作流...", "info");
             addLog("正在触发 update-index 工作流...", "info");
 
             try {
-                const response = await fetch(`${API_BASE}/actions/workflows/${WORKFLOW_FILE}/dispatches`, {
+                await fetchJSON(WORKER_TRIGGER_URL, {
                     method: "POST",
-                    headers: {
-                        "Authorization": `token ${token}`,
-                        "Accept": "application/vnd.github.v3+json",
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({ ref: "main" }),
+                    headers: { "Content-Type": "application/json", "Accept": "application/json" },
+                    body: "{}",
                 });
-
-                if (response.ok || response.status === 204) {
-                    addLog("✅ 工作流已触发，正在等待运行开始...", "success");
-                    trackNewRun(latestRunId);
-                } else {
-                    const errorData = await response.json().catch(() => ({}));
-                    addLog(`❌ 触发失败：${errorData.message || `HTTP ${response.status}`}`, "error");
-                }
+                showTriggerMessage("✅ 已触发，正在等待运行开始...", "success");
+                addLog("✅ 工作流已触发，正在等待运行开始...", "success");
+                trackNewRun(latestRunId);
             } catch (error) {
-                addLog(`❌ 网络请求失败：${error.message}`, "error");
+                showTriggerMessage(`❌ 触发失败：${error.message}`, "error");
+                addLog(`❌ 触发失败：${error.message}`, "error");
             } finally {
                 button.disabled = false;
                 button.innerHTML = originalContent;

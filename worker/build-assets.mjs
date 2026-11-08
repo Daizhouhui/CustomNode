@@ -5,7 +5,6 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const outputDirectory = resolve(root, "worker", "public");
 const assets = [
-    ["update-index.html", "update-index.html"],
     ["worker/login.html", "login.html"],
     ["style/ico.png", "style/ico.png"],
 ];
