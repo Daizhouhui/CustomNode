@@ -533,47 +533,10 @@ function managerAssetPath(pathname) {
     return pathname === "/" ? "/index.html" : pathname;
 }
 
-const WORKFLOW_FILE = "update-index.yml";
-
 function githubApiUrl(env, path) {
     const owner = encodeURIComponent(env.GITHUB_OWNER);
     const repository = encodeURIComponent(env.GITHUB_REPOSITORY);
     return `https://api.github.com/repos/${owner}/${repository}/${path}`;
-}
-
-async function githubApiJSON(env, path) {
-    let response;
-    try {
-        response = await fetch(githubApiUrl(env, path), {
-            headers: githubHeaders(env, "application/vnd.github+json"),
-        });
-    } catch (error) {
-        console.error("GitHub API request failed", error);
-        return { error: jsonResponse({ error: "Unable to reach GitHub" }, 502) };
-    }
-    if (!response.ok) {
-        console.error("GitHub API request failed", response.status);
-        return { error: jsonResponse({ error: `GitHub API request failed (HTTP ${response.status}).` }, 502) };
-    }
-    try {
-        return { data: await response.json() };
-    } catch {
-        return { error: jsonResponse({ error: "GitHub returned invalid JSON" }, 502) };
-    }
-}
-
-function pickWorkflowRun(run) {
-    return {
-        id: run.id,
-        run_number: run.run_number,
-        status: run.status,
-        conclusion: run.conclusion,
-        event: run.event,
-        created_at: run.created_at,
-        updated_at: run.updated_at,
-        html_url: run.html_url,
-        head_commit_message: run.head_commit?.message?.split("\n")[0] || "",
-    };
 }
 
 async function handleWorkflowDispatch(request, env) {
@@ -651,36 +614,6 @@ async function handleRequest(request, env) {
             200,
             { "Set-Cookie": `${SESSION_COOKIE}=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Strict` },
         );
-    }
-    if (url.pathname === "/api/workflow-runs") {
-        if (request.method !== "GET") {
-            return jsonResponse({ error: "Method not allowed" }, 405, { Allow: "GET" });
-        }
-        if (!(await isAuthenticated(request, env))) {
-            return jsonResponse({ error: "Login required" }, 401);
-        }
-        const result = await githubApiJSON(env, `actions/workflows/${WORKFLOW_FILE}/runs?per_page=5`);
-        if (result.error) {
-            return result.error;
-        }
-        return jsonResponse({ workflow_runs: (result.data.workflow_runs || []).map(pickWorkflowRun) });
-    }
-    if (url.pathname.startsWith("/api/workflow-runs/")) {
-        if (request.method !== "GET") {
-            return jsonResponse({ error: "Method not allowed" }, 405, { Allow: "GET" });
-        }
-        if (!(await isAuthenticated(request, env))) {
-            return jsonResponse({ error: "Login required" }, 401);
-        }
-        const runId = url.pathname.slice("/api/workflow-runs/".length);
-        if (!/^\d{1,20}$/.test(runId)) {
-            return jsonResponse({ error: "Not found" }, 404);
-        }
-        const result = await githubApiJSON(env, `actions/runs/${runId}`);
-        if (result.error) {
-            return result.error;
-        }
-        return jsonResponse(pickWorkflowRun(result.data));
     }
     if (url.pathname === "/api/trigger-update") {
         if (!(await isAuthenticated(request, env))) {

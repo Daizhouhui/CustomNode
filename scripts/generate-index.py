@@ -2339,9 +2339,12 @@ def generate_update_page(repo_owner: str, repo_name: str) -> str:
         /* 主体：左右两栏（触发 + 状态） */
         .update-main {
             display: grid;
-            grid-template-columns: 2fr 3fr;
+            grid-template-columns: 1fr;
             gap: 20px;
             padding: 20px 25px 0;
+            width: 100%;
+            max-width: 720px;
+            margin: 0 auto;
         }
 
         .card {
@@ -2469,96 +2472,6 @@ def generate_update_page(repo_owner: str, repo_name: str) -> str:
             color: white;
         }
 
-        .schedule-row {
-            font-size: 14px;
-            color: var(--gray);
-            background: var(--light);
-            border: 1px solid var(--gray-light);
-            border-radius: 8px;
-            padding: 10px 14px;
-            margin-bottom: 14px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .run-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .run-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 12px;
-            border: 1px solid var(--gray-light);
-            border-radius: 8px;
-            text-decoration: none;
-            color: var(--dark);
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-
-        .run-item:hover {
-            border-color: var(--primary);
-            background: #f0f9ff;
-        }
-
-        .run-item.latest {
-            border-color: rgba(99, 102, 241, 0.45);
-            background: rgba(99, 102, 241, 0.04);
-        }
-
-        .run-state {
-            font-size: 12px;
-            font-weight: 700;
-            padding: 3px 10px;
-            border-radius: 12px;
-            white-space: nowrap;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .state-success { color: var(--secondary-dark); background: rgba(16, 185, 129, 0.12); }
-        .state-failure { color: var(--danger); background: rgba(239, 68, 68, 0.12); }
-        .state-cancelled { color: var(--gray); background: var(--gray-light); }
-        .state-queued { color: var(--accent-dark); background: rgba(245, 158, 11, 0.12); }
-        .state-running { color: var(--primary-dark); background: rgba(99, 102, 241, 0.12); }
-
-        .run-num {
-            font-weight: 700;
-            color: var(--primary-dark);
-            white-space: nowrap;
-        }
-
-        .run-event {
-            font-size: 12px;
-            padding: 2px 8px;
-            border-radius: 10px;
-            background: var(--light);
-            border: 1px solid var(--border);
-            color: var(--gray);
-            white-space: nowrap;
-        }
-
-        .run-time {
-            margin-left: auto;
-            color: var(--gray);
-            font-size: 13px;
-            white-space: nowrap;
-        }
-
-        .status-empty, .status-error {
-            font-size: 14px;
-            color: var(--gray);
-            padding: 14px 4px;
-        }
-
-        .status-error { color: var(--danger); }
-
         .actions-link {
             display: inline-flex;
             align-items: center;
@@ -2634,12 +2547,6 @@ def generate_update_page(repo_owner: str, repo_name: str) -> str:
         .update-footer a:hover { color: var(--primary-dark); }
 
         /* 响应式 */
-        @media (max-width: 992px) {
-            .update-main {
-                grid-template-columns: 1fr;
-            }
-        }
-
         @media (max-width: 768px) {
             body { padding: 10px 5px; }
 
@@ -2704,15 +2611,15 @@ def generate_update_page(repo_owner: str, repo_name: str) -> str:
             </a>
         </div>
 
-        <!-- 主体：触发更新 + 运行状态 -->
+        <!-- 主体：触发更新 -->
         <div class="update-main">
-            <!-- 触发更新 -->
             <div class="card">
                 <div class="card-head">
                     <h2><i class="fas fa-play-circle"></i> 手动触发更新</h2>
                 </div>
                 <p class="card-desc">
                     触发 update-index 工作流：重新扫描仓库节点文件，重建索引页 index.html 与文件清单 files_info.json。
+                    每日 07:00（北京时间）以及仓库文件推送时也会自动执行。
                 </p>
                 <p class="hint">
                     <i class="fas fa-shield-alt"></i>
@@ -2723,28 +2630,10 @@ def generate_update_page(repo_owner: str, repo_name: str) -> str:
                     立即更新
                 </button>
                 <p class="trigger-message" id="triggerMessage" role="status"></p>
-            </div>
-
-            <!-- 运行状态 -->
-            <div class="card">
-                <div class="card-head">
-                    <h2><i class="fas fa-activity"></i> 工作流运行状态</h2>
-                    <button class="refresh-btn" onclick="loadStatus(true)">
-                        <i class="fas fa-redo"></i>
-                        刷新
-                    </button>
-                </div>
-                <div class="schedule-row">
-                    <i class="far fa-clock"></i>
-                    <span>定时执行：每日 07:00（北京时间）· 仓库文件推送时也会自动触发</span>
-                </div>
-                <div class="run-list" id="runsContainer">
-                    <div class="status-empty">正在获取运行记录...</div>
-                </div>
                 <a class="actions-link"
                    href="https://github.com/{{REPO_OWNER}}/{{REPO_NAME}}/actions/workflows/update-index.yml"
                    target="_blank" rel="noopener">
-                    在 GitHub Actions 查看全部记录
+                    在 GitHub Actions 查看运行结果
                     <i class="fas fa-external-link-alt"></i>
                 </a>
             </div>
@@ -2778,13 +2667,7 @@ def generate_update_page(repo_owner: str, repo_name: str) -> str:
     </div>
 
     <script>
-        const WORKFLOW_FILE = "update-index.yml";
-        const WORKER_RUNS_URL = "/api/workflow-runs";
         const WORKER_TRIGGER_URL = "/api/trigger-update";
-        const EVENT_LABELS = { schedule: "定时", push: "推送", workflow_dispatch: "手动", repository_dispatch: "控制台" };
-
-        let latestRunId = null;     // 已知的最新一次运行ID，用于识别新触发的运行
-        let trackingActive = false; // 防止重复启动进度跟踪
 
         // 写入一条真实日志（内容用 textContent 构建，避免注入）
         function addLog(message, type = "info") {
@@ -2831,168 +2714,6 @@ def generate_update_page(repo_owner: str, repo_name: str) -> str:
             element.className = `trigger-message ${type}`;
         }
 
-        // 运行耗时，如 "1分12秒"
-        function formatDuration(isoStart, isoEnd) {
-            const seconds = Math.max(0, Math.round((new Date(isoEnd) - new Date(isoStart)) / 1000));
-            if (seconds < 60) return `${seconds}秒`;
-            const minutes = Math.floor(seconds / 60);
-            const rest = seconds % 60;
-            return rest ? `${minutes}分${rest}秒` : `${minutes}分钟`;
-        }
-
-        // 运行状态 -> 中文标签 + 样式
-        function runState(run) {
-            if (run.status === "queued") {
-                return { label: "排队中", cls: "state-queued", icon: "fas fa-hourglass-half" };
-            }
-            if (run.status === "in_progress") {
-                return { label: "运行中", cls: "state-running", icon: "fas fa-spinner fa-spin" };
-            }
-            switch (run.conclusion) {
-                case "success": return { label: "成功", cls: "state-success", icon: "fas fa-check-circle" };
-                case "failure": return { label: "失败", cls: "state-failure", icon: "fas fa-times-circle" };
-                case "cancelled": return { label: "已取消", cls: "state-cancelled", icon: "fas fa-ban" };
-                default: return { label: run.conclusion || "未知", cls: "state-cancelled", icon: "fas fa-question-circle" };
-            }
-        }
-
-        // 构建单条运行记录（最新一条高亮，悬浮显示对应提交信息）
-        function buildRunItem(run, isLatest) {
-            const state = runState(run);
-            const item = document.createElement("a");
-            item.className = `run-item${isLatest ? " latest" : ""}`;
-            item.href = run.html_url;
-            item.target = "_blank";
-            item.rel = "noopener";
-
-            if (run.head_commit_message) {
-                item.title = run.head_commit_message;
-            }
-
-            const stateSpan = document.createElement("span");
-            stateSpan.className = `run-state ${state.cls}`;
-            const stateIcon = document.createElement("i");
-            stateIcon.className = state.icon;
-            stateSpan.append(stateIcon, ` ${state.label}`);
-
-            const num = document.createElement("span");
-            num.className = "run-num";
-            num.textContent = `#${run.run_number}`;
-
-            const event = document.createElement("span");
-            event.className = "run-event";
-            event.textContent = EVENT_LABELS[run.event] || run.event;
-
-            const time = document.createElement("span");
-            time.className = "run-time";
-            const started = new Date(run.created_at).toLocaleString("zh-CN", { hour12: false });
-            time.textContent = run.status === "completed"
-                ? `${started} · ${formatDuration(run.created_at, run.updated_at)}`
-                : started;
-
-            item.append(stateSpan, num, event, time);
-            return item;
-        }
-
-        // 加载最近 5 次真实运行记录（公开仓库无需令牌）
-        async function loadStatus(manual = false) {
-            const container = document.getElementById("runsContainer");
-            try {
-                const data = await fetchJSON(WORKER_RUNS_URL);
-                const runs = (data.workflow_runs || []).slice(0, 5);
-
-                container.innerHTML = "";
-                if (!runs.length) {
-                    const empty = document.createElement("div");
-                    empty.className = "status-empty";
-                    empty.textContent = "暂无运行记录";
-                    container.appendChild(empty);
-                    return;
-                }
-
-                latestRunId = runs[0].id;
-                runs.forEach((run, index) => container.appendChild(buildRunItem(run, index === 0)));
-
-                // 页面打开时如果正有运行在执行，自动跟踪到它结束
-                if (runs[0].status !== "completed") {
-                    addLog(`检测到正在进行的运行 #${runs[0].run_number}，将自动跟踪进度`, "info");
-                    trackRun(runs[0].id);
-                }
-            } catch (error) {
-                container.innerHTML = "";
-                const tip = document.createElement("div");
-                tip.className = "status-error";
-                tip.textContent = `无法获取运行记录：${error.message}`;
-                container.appendChild(tip);
-                if (manual) {
-                    addLog(`刷新运行状态失败: ${error.message}`, "error");
-                }
-            }
-        }
-
-        // 轮询跟踪某次运行直到结束（15秒一次，最多 6 分钟）
-        function trackRun(runId) {
-            if (trackingActive) return;
-            trackingActive = true;
-
-            let attempts = 0;
-            const timer = setInterval(async () => {
-                attempts += 1;
-                if (attempts > 24) {
-                    clearInterval(timer);
-                    trackingActive = false;
-                    addLog("已停止自动跟踪，可点击刷新按钮查看最新结果", "warning");
-                    return;
-                }
-                try {
-                    const run = await fetchJSON(`${WORKER_RUNS_URL}/${runId}`);
-                    if (run.status === "completed") {
-                        clearInterval(timer);
-                        trackingActive = false;
-                        if (run.conclusion === "success") {
-                            addLog(`✅ 运行 #${run.run_number} 已完成（耗时 ${formatDuration(run.created_at, run.updated_at)}）`, "success");
-                        } else {
-                            addLog(`⚠️ 运行 #${run.run_number} 已结束：${runState(run).label}`, "warning");
-                        }
-                        loadStatus();
-                    }
-                } catch (error) {
-                    // 网络波动时跳过本次，等待下一次轮询
-                }
-            }, 15000);
-        }
-
-        // 触发后等待新运行出现，再转交 trackRun 跟踪
-        function trackNewRun(baselineId) {
-            if (baselineId === null) {
-                addLog("无法自动跟踪进度（运行记录接口不可用），请稍后点击刷新查看结果", "warning");
-                return;
-            }
-
-            let attempts = 0;
-            const timer = setInterval(async () => {
-                attempts += 1;
-                if (attempts > 12) {
-                    clearInterval(timer);
-                    addLog("未检测到新的运行，请稍后点击刷新查看结果", "warning");
-                    return;
-                }
-                try {
-                    const data = await fetchJSON(WORKER_RUNS_URL);
-                    const top = (data.workflow_runs || [])[0];
-                    if (top && top.id !== baselineId) {
-                        clearInterval(timer);
-                        latestRunId = top.id;
-                        addLog(`检测到新的运行 #${top.run_number}，开始跟踪执行进度...`, "info");
-                        loadStatus();
-                        trackRun(top.id);
-                    }
-                } catch (error) {
-                    // 继续下一次轮询
-                }
-            }, 15000);
-        }
-
         // 触发更新工作流（唯一入口，使用 Worker 服务端令牌）
         async function triggerUpdate() {
             const button = document.getElementById("triggerBtn");
@@ -3009,9 +2730,8 @@ def generate_update_page(repo_owner: str, repo_name: str) -> str:
                     headers: { "Content-Type": "application/json", "Accept": "application/json" },
                     body: "{}",
                 });
-                showTriggerMessage("✅ 已触发，正在等待运行开始...", "success");
-                addLog("✅ 工作流已触发，正在等待运行开始...", "success");
-                trackNewRun(latestRunId);
+                showTriggerMessage("✅ 工作流已成功触发，请到 GitHub Actions 查看执行结果", "success");
+                addLog("✅ 工作流已成功触发，请到 GitHub Actions 查看执行结果", "success");
             } catch (error) {
                 showTriggerMessage(`❌ 触发失败：${error.message}`, "error");
                 addLog(`❌ 触发失败：${error.message}`, "error");
@@ -3027,11 +2747,6 @@ def generate_update_page(repo_owner: str, repo_name: str) -> str:
             output.innerHTML = "";
             addLog("日志已清空", "info");
         }
-
-        // 页面加载：拉取真实运行状态
-        document.addEventListener("DOMContentLoaded", () => {
-            loadStatus();
-        });
     </script>
 </body>
 </html>'''
