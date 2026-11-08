@@ -2781,7 +2781,7 @@ def generate_update_page(repo_owner: str, repo_name: str) -> str:
         const WORKFLOW_FILE = "update-index.yml";
         const WORKER_RUNS_URL = "/api/workflow-runs";
         const WORKER_TRIGGER_URL = "/api/trigger-update";
-        const EVENT_LABELS = { schedule: "定时", push: "推送", workflow_dispatch: "手动" };
+        const EVENT_LABELS = { schedule: "定时", push: "推送", workflow_dispatch: "手动", repository_dispatch: "控制台" };
 
         let latestRunId = null;     // 已知的最新一次运行ID，用于识别新触发的运行
         let trackingActive = false; // 防止重复启动进度跟踪

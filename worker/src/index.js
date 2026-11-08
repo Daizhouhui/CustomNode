@@ -590,29 +590,43 @@ async function handleWorkflowDispatch(request, env) {
 
     let response;
     try {
-        response = await fetch(githubApiUrl(env, `actions/workflows/${WORKFLOW_FILE}/dispatches`), {
+        response = await fetch(githubApiUrl(env, "dispatches"), {
             method: "POST",
             headers: {
                 ...githubHeaders(env, "application/vnd.github+json"),
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({ ref: env.GITHUB_REF }),
+            body: JSON.stringify({ event_type: "update-index" }),
         });
     } catch (error) {
-        console.error("GitHub workflow dispatch failed", error);
+        console.error("GitHub repository dispatch failed", error);
         return jsonResponse({ error: "Unable to reach GitHub" }, 502);
     }
 
     if (response.status === 204) {
         return jsonResponse({ ok: true }, 202);
     }
+
+    let detail = "";
+    try {
+        const body = await response.json();
+        if (typeof body?.message === "string" && body.message) {
+            detail = `: ${body.message}`;
+        }
+    } catch {
+        // GitHub 未返回 JSON 时只保留状态码
+    }
+    console.error("GitHub repository dispatch failed", response.status);
     if (response.status === 401) {
-        return jsonResponse({ error: "GitHub rejected the Worker token (401). Check GITHUB_TOKEN." }, 502);
+        return jsonResponse({ error: `GitHub rejected the Worker token (401)${detail}. Check GITHUB_TOKEN.` }, 502);
     }
-    if (response.status === 404) {
-        return jsonResponse({ error: "Workflow not found or the token cannot access it (404)." }, 502);
+    if (response.status === 403) {
+        return jsonResponse(
+            { error: `GitHub denied the dispatch (403)${detail}. The Worker token needs Contents write permission.` },
+            502,
+        );
     }
-    return jsonResponse({ error: `GitHub workflow dispatch failed (HTTP ${response.status}).` }, 502);
+    return jsonResponse({ error: `GitHub repository dispatch failed (HTTP ${response.status})${detail}.` }, 502);
 }
 
 async function handleRequest(request, env) {
