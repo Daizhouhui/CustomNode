@@ -93,11 +93,16 @@ def get_git_commit_message(file_path: str) -> str:
 
 
 def parse_node_count(commit_message: str):
-    """从提交信息中解析节点数量，例如: (245节点)、(1 个)、(20节点)"""
+    """从提交信息中解析节点数量，优先取总节点数，例如: (总共8节点)、(245节点)、(1 个)、(20节点)"""
     if not commit_message:
         return None
 
-    # 优先匹配括号内的数量（兼容中英文括号、"节点"和"个"两种写法）
+    # 优先匹配总节点数，例如: (总共8节点)、总共 8 节点、总共8个节点
+    match = re.search(r"总共\s*(\d+)\s*个?\s*节点", commit_message)
+    if match:
+        return int(match.group(1))
+
+    # 其次匹配括号内的数量（兼容中英文括号、"节点"和"个"两种写法）
     match = re.search(r"[(（](\d+)\s*(?:节点|个)[)）]", commit_message)
     if match:
         return int(match.group(1))
